@@ -19,8 +19,8 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/program_options.hpp>
 
-#include "define.hpp"
-#include "encdec.hpp"
+#include "s2s/define.hpp"
+#include "s2s/encdec.hpp"
 
 #ifndef INCLUDE_GUARD_Cho2014_HPP
 #define INCLUDE_GUARD_Cho2014_HPP
@@ -121,14 +121,15 @@ public:
     dec_builder.start_new_sequence(oein);
   }
 
-  virtual Expression Decoder(ComputationGraph& cg, const BatchCol prev) {
+  virtual std::vector<Expression> Decoder(ComputationGraph& cg, const BatchCol prev) {
     // decode
     Expression i_x_t = lookup(cg, p_c, prev);
     Expression i_y_t = dec_builder.add_input(i_x_t);
     Expression i_R = parameter(cg,p_R);
     Expression i_bias = parameter(cg,p_bias);
     Expression i_r_t = i_bias + i_R * i_y_t;
-    return i_r_t;
+
+    return std::vector<Expression>({i_r_t});
   }
 };
 

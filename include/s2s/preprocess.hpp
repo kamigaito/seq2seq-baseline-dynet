@@ -8,8 +8,8 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/program_options.hpp>
 
-#include "define.hpp"
-#include "comp.hpp"
+#include "s2s/define.hpp"
+#include "s2s/comp.hpp"
 
 #ifndef INCLUDE_GUARD_PREPROCESS_HPP
 #define INCLUDE_GUARD_PREPROCESS_HPP

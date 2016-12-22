@@ -18,8 +18,8 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/program_options.hpp>
 
-#include "define.hpp"
-#include "encdec.hpp"
+#include "s2s/define.hpp"
+#include "s2s/encdec.hpp"
 
 #ifndef INCLUDE_GUARD_Bahdanau2014_HPP
 #define INCLUDE_GUARD_Bahdanau2014_HPP
@@ -84,9 +84,9 @@ public:
     slen = sents.size();
     fwd_enc_builder.new_graph(cg);
     fwd_enc_builder.start_new_sequence();
-    vector<Expression> h_fwd(sents.size());
-    vector<Expression> h_bwd(sents.size());
-    vector<Expression> h_bi(sents.size());
+    std::vector<Expression> h_fwd(sents.size());
+    std::vector<Expression> h_bwd(sents.size());
+    std::vector<Expression> h_bi(sents.size());
     for (unsigned i = 0; i < sents.size(); ++i) {
       Expression i_x_t = lookup(cg, p_ec, sents[i]);
       //h_fwd[i] = fwd_enc_builder.add_input(i_x_t);
@@ -104,7 +104,7 @@ public:
     }
     // bidirectional encoding
     for (unsigned i = 0; i < sents.size(); ++i) {
-      h_bi[i] = concatenate(vector<Expression>({h_fwd[i], h_bwd[i]}));
+      h_bi[i] = concatenate(std::vector<Expression>({h_fwd[i], h_bwd[i]}));
     }
     i_h_enc = concatenate_cols(h_bi);
     Expression i_Ua = parameter(cg, p_Ua);
@@ -113,7 +113,7 @@ public:
     dec_builder.start_new_sequence(rev_enc_builder.final_s());
   }
 
-  virtual Expression Decoder(ComputationGraph& cg, const BatchCol prev) {
+  virtual std::vector<Expression> Decoder(ComputationGraph& cg, const BatchCol prev) {
     // decode
     Expression i_va = parameter(cg, p_va);
     Expression i_Wa = parameter(cg, p_Wa);
@@ -125,12 +125,13 @@ public:
     Expression i_c_t = i_h_enc * i_alpha_t;
 
     Expression i_x_t = lookup(cg, p_c, prev);
-    Expression input = concatenate(vector<Expression>({i_x_t, i_c_t})); 
+    Expression input = concatenate(std::vector<Expression>({i_x_t, i_c_t})); 
     Expression i_y_t = dec_builder.add_input(input);
     Expression i_R = parameter(cg,p_R);
     Expression i_bias = parameter(cg,p_bias);
     Expression i_r_t = i_bias + i_R * i_y_t;
-    return i_r_t;
+
+    return std::vector<Expression>({i_r_t, i_alpha_t});
   }
   
 };

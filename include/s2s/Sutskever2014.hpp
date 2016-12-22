@@ -19,8 +19,8 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/program_options.hpp>
 
-#include "define.hpp"
-#include "encdec.hpp"
+#include "s2s/define.hpp"
+#include "s2s/encdec.hpp"
 
 #ifndef INCLUDE_GUARD_Sutskever2014_HPP
 #define INCLUDE_GUARD_Sutskever2014_HPP
@@ -35,10 +35,6 @@ class Sutskever2014 : public EncoderDecoder<Builder> {
 public:
   LookupParameters* p_c;
   LookupParameters* p_ec;  // map input to embedding (used in fwd and rev models)
-  //Parameters* p_ie2h;
-  //Parameters* p_bie;
-  //Parameters* p_h2oe;
-  //Parameters* p_boe;
   Parameters* p_R;
   Parameters* p_bias;
   Builder dec_builder;
@@ -60,11 +56,6 @@ public:
     ),
     vm(_vm)
   {
-    //vm = _vm;
-    //p_ie2h = model.add_parameters({unsigned(HIDDEN_DIM * LAYERS * 1.5), unsigned(HIDDEN_DIM * LAYERS * 2)});
-    //p_bie = model.add_parameters({unsigned(HIDDEN_DIM * LAYERS * 1.5)});
-    //p_h2oe = model.add_parameters({unsigned(HIDDEN_DIM * LAYERS), unsigned(HIDDEN_DIM * LAYERS * 1.5)});
-    //p_boe = model.add_parameters({unsigned(HIDDEN_DIM * LAYERS)});
     p_ec = model.add_lookup_parameters(vm->at("src-vocab-size").as<unsigned int>(), {vm->at("dim-input").as<unsigned int>()}); 
     p_c = model.add_lookup_parameters(vm->at("trg-vocab-size").as<unsigned int>(), {vm->at("dim-input").as<unsigned int>()}); 
     p_R = model.add_parameters({vm->at("trg-vocab-size").as<unsigned int>(), vm->at("dim-hidden").as<unsigned int>()});
@@ -85,14 +76,15 @@ public:
     dec_builder.start_new_sequence(rev_enc_builder.final_s());
   }
 
-  virtual Expression Decoder(ComputationGraph& cg, const BatchCol prev) {
+  virtual std::vector<Expression> Decoder(ComputationGraph& cg, const BatchCol prev) {
     // decode
     Expression i_x_t = lookup(cg, p_c, prev);
     Expression i_y_t = dec_builder.add_input(i_x_t);
     Expression i_R = parameter(cg,p_R);
     Expression i_bias = parameter(cg,p_bias);
     Expression i_r_t = i_bias + i_R * i_y_t;
-    return i_r_t;
+
+    return std::vector<Expression>({i_r_t});
   }
 
 };

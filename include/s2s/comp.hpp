@@ -1,5 +1,5 @@
 #include <string>
-#include "define.hpp"
+#include "s2s/define.hpp"
 
 #ifndef INCLUDE_GUARD_COMP_HPP
 #define INCLUDE_GUARD_COMP_HPP
@@ -21,7 +21,7 @@ struct CompareString {
     }
     return false;
   }
-  bool operator()(const pair<string, unsigned int>& first, const pair<string, unsigned int>& second) {
+  bool operator()(const std::pair<std::string, unsigned int>& first, const std::pair<std::string, unsigned int>& second) {
     if(first.second > second.second){
       return true;
     }

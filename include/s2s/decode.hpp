@@ -18,11 +18,11 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/program_options.hpp>
 
-#include "encdec.hpp"
-#include "define.hpp"
-#include "comp.hpp"
-#include "preprocess.hpp"
-#include "metrics.hpp"
+#include "s2s/encdec.hpp"
+#include "s2s/define.hpp"
+#include "s2s/comp.hpp"
+#include "s2s/preprocess.hpp"
+#include "s2s/metrics.hpp"
 
 namespace Decode {
 

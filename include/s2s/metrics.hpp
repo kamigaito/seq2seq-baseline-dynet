@@ -1,5 +1,5 @@
 #include "dynet/dict.h"
-#include "define.hpp"
+#include "s2s/define.hpp"
 
 #ifndef INCLUDE_GUARD_METRICS_HPP
 #define INCLUDE_GUARD_METRICS_HPP

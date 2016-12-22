@@ -18,15 +18,15 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/program_options.hpp>
 
-#include "Cho2014.hpp"
-#include "Sutskever2014.hpp"
-#include "Bahdanau2014.hpp"
-#include "encdec.hpp"
-#include "decode.hpp"
-#include "define.hpp"
-#include "comp.hpp"
-#include "preprocess.hpp"
-#include "metrics.hpp"
+#include "s2s/Cho2014.hpp"
+#include "s2s/Sutskever2014.hpp"
+#include "s2s/Bahdanau2014.hpp"
+#include "s2s/encdec.hpp"
+#include "s2s/decode.hpp"
+#include "s2s/define.hpp"
+#include "s2s/comp.hpp"
+#include "s2s/preprocess.hpp"
+#include "s2s/1metrics.hpp"
 
 using namespace std;
 using namespace dynet;
@@ -221,8 +221,8 @@ std::cout << (order[si] + bsize - remain) << " " << parallel_size << " : " << (b
         CorpusToBatch(order[si] + bsize - remain, parallel_size, training, sents, osents);
         encdec->Encoder(sents, cg);
         for (int t = 0; t < osents.size() - 1; ++t) {
-          Expression i_r_t = encdec->Decoder(cg, osents[t]);
-          //vector<unsigned int> next = osents[t+1];
+          std::vector<Expression> exp_vec = encdec->Decoder(cg, osents[t]);
+          Expression i_r_t = exp_vec.at(0);
           Expression i_err = pickneglogsoftmax(i_r_t, osents[t+1]);
           errs.push_back(i_err);
         }
@@ -241,16 +241,16 @@ std::cout << (order[si] + bsize - remain) << " " << parallel_size << " : " << (b
     trainer->status();
     
     double dloss = 0;
-		for(unsigned int sid = 0; sid < dev.size(); sid++){
-      ComputationGraph cg;
-      Sent osent;
-      Decode::Greedy<Builder>(dev.at(sid).first, osent, encdec, cg, vm);
-      dloss -= f_measure(dev.at(sid).second, osent, d_src, d_trg); // future work : replace to bleu
-      cerr << "ref" << endl;
-      print_sent(dev.at(sid).second, d_trg);
-      cerr << "hyp" << endl;
-      print_sent(osent, d_trg);
-		}
+    for(unsigned int sid = 0; sid < dev.size(); sid++){
+        ComputationGraph cg;
+        Sent osent;
+        Decode::Greedy<Builder>(dev.at(sid).first, osent, encdec, cg, vm);
+        dloss -= f_measure(dev.at(sid).second, osent, d_src, d_trg); // future work : replace to bleu
+        cerr << "ref" << endl;
+        print_sent(dev.at(sid).second, d_trg);
+        cerr << "hyp" << endl;
+        print_sent(osent, d_trg);
+    }
     if (dloss < best) {
       best = dloss;
       ofstream out(vm.at("path_model").as<string>());
