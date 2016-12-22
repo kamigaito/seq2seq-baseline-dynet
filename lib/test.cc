@@ -18,9 +18,9 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/program_options.hpp>
 
-#include "s2s/Cho2014.hpp"
-#include "s2s/Sutskever2014.hpp"
-#include "s2s/Bahdanau2014.hpp"
+#include "s2s/encdec/Cho2014.hpp"
+#include "s2s/encdec/Sutskever2014.hpp"
+#include "s2s/encdec/Bahdanau2014.hpp"
 #include "s2s/encdec.hpp"
 #include "s2s/decode.hpp"
 #include "s2s/define.hpp"
