@@ -26,7 +26,7 @@
 #include "s2s/define.hpp"
 #include "s2s/comp.hpp"
 #include "s2s/preprocess.hpp"
-#include "s2s/1metrics.hpp"
+#include "s2s/metrics.hpp"
 
 using namespace std;
 using namespace dynet;
@@ -44,7 +44,6 @@ void print_sent(Sent& osent, dynet::Dict& d_trg){
   cout << endl;
 }
 
-template <class Builder>
 void train(boost::program_options::variables_map& vm){
   dynet::Dict d_src, d_trg;
   ParaCorp training, dev;
@@ -265,134 +264,14 @@ std::cout << (order[si] + bsize - remain) << " " << parallel_size << " : " << (b
 
 }
 
-template <class Builder>
-void test(boost::program_options::variables_map& vm){
-  dynet::Dict d_src, d_trg;
-  ParaCorp training, dev;
-  vector<Sent > test_src, test_out;
-  cerr << "Reading source dictionary from " << vm.at("path_dict_src").as<string>() << "...\n";
-  {
-    string fname = vm.at("path_dict_src").as<string>();
-    ifstream in(fname);
-    boost::archive::text_iarchive ia(in);
-    ia >> d_src;
-    in.close();
-  }
-  cerr << "Reading target dictionary from " << vm.at("path_dict_trg").as<string>() << "...\n";
-  {
-    string fname = vm.at("path_dict_trg").as<string>();
-    ifstream in(fname);
-    boost::archive::text_iarchive ia(in);
-    ia >> d_trg;
-    in.close();
-  }
-  cerr << "Reading source test text from " << vm.at("path_test_src").as<string>() << "...\n";
-  SOS_SRC = d_src.Convert("<s>");
-  EOS_SRC = d_src.Convert("</s>");
-  SOS_TRG = d_trg.Convert("<s>");
-  EOS_TRG = d_trg.Convert("</s>");
-  LoadCorpus(vm.at("path_test_src").as<string>(), SOS_SRC, EOS_SRC, d_src, test_src);
-  vm.at("src-vocab-size").value() = d_src.size();
-  vm.at("trg-vocab-size").value() = d_trg.size();
-  //RNNBuilder rnn(vm.at("depth-layer").as<int>(), vm.at("dim-input").as<int>(), vm.at("dim-hidden").as<int>(), &model);
-  //EncoderDecoder<SimpleRNNBuilder> lm(model);
-  Model model;
-  EncoderDecoder<Builder>* encdec;
-  switch(vm.at("encdec-type").as<unsigned int>()){
-    case __Cho2014__:
-    encdec = new Cho2014<Builder>(model, &vm);
-    break;
-    case __Sutskever2014__:
-    encdec = new Sutskever2014<Builder>(model, &vm);
-    break;
-    case __Bahdanau2014__:
-    encdec = new Bahdanau2014<Builder>(model, &vm);
-    break;
-/*
-    case __Luong2015__:
-    encdec = new Luong2015<Builder>(model, &vm);
-    break;
-*/
-  }
-  string fname = vm.at("path_model").as<string>();
-  cerr << "Reading model from " << vm.at("path_model").as<string>() << "...\n";
-  ifstream in(fname);
-  boost::archive::text_iarchive ia(in);
-  ia >> model;
-  in.close();
-	for(unsigned int sid = 0; sid < test_src.size(); sid++){
-     ComputationGraph cg;
-     Sent osent;
-     Decode::Greedy<Builder>(test_src.at(sid), osent, encdec, cg, vm);
-     print_sent(osent, d_trg);
-	}
-}
-
 int main(int argc, char** argv) {
   namespace po = boost::program_options;
   po::options_description opts("h");
-  opts.add_options()
-  ("path_train_src", po::value<string>()->required(), "source train file")
-  ("path_train_trg", po::value<string>()->required(), "target train file")
-  ("path_dev_src", po::value<string>()->required(), "source dev file")
-  ("path_dev_trg", po::value<string>()->required(), "target dev file")
-  ("path_test_src", po::value<string>()->required(), "test input")
-  ("path_test_out", po::value<string>()->required(), "test input")
-  ("path_dict_src", po::value<string>()->required(), "source dictionary file")
-  ("path_dict_trg", po::value<string>()->required(), "target dictionary file")
-  ("path_model", po::value<string>()->required(), "test input")
-  ("batch-size",po::value<unsigned int>()->default_value(1), "batch size")
-  ("parallel",po::value<unsigned int>()->default_value(1), "parallel size")
-  ("parallel-dev",po::value<unsigned int>()->default_value(1), "parallel size (dev)")
-  ("beam-size", po::value<unsigned int>()->default_value(1), "beam size")
-  ("src-vocab-size", po::value<unsigned int>()->default_value(20000), "source vocab size")
-  ("trg-vocab-size", po::value<unsigned int>()->default_value(20000), "target vocab size")
-  ("builder", po::value<unsigned int>()->default_value(0), "select builder (0:LSTM (default), 1:Fast-LSTM, 2:GRU, 3:RNN)")
-  ("trainer", po::value<unsigned int>()->default_value(0), "select trainer (0:SGD (default), 1:MomentumSGD, 2:Adagrad, 3:Adadelta, 4:RMSprop, 5:Adam)")
-  ("encdec-type", po::value<unsigned int>()->default_value(2), "select a type of encoder-decoder (0:dynet example, 1:encoder-decoder, 2:attention (default))")
-  ("train", po::value<unsigned int>()->default_value(1), "is training ? (1:Yes,0:No)")
-  ("test", po::value<unsigned int>()->default_value(1), "is test ? (1:Yes, 0:No)")
-  ("dim-input", po::value<unsigned int>()->default_value(500), "dimmension size of embedding layer")
-  ("dim-hidden", po::value<unsigned int>()->default_value(500), "dimmension size of hidden layer")
-  ("dim-attention", po::value<unsigned int>()->default_value(64), "dimmension size of hidden layer")
-  ("depth-layer", po::value<unsigned int>()->default_value(1), "depth of hidden layer")
-  ("length-limit", po::value<unsigned int>()->default_value(100), "length limit of target language in decoding")
-  ("eta", po::value<float>()->default_value(1.0), "learning rate")
-  ("dynet-mem", po::value<string>()->default_value("512m"), "memory size");
+  s2s::add_options(opts);
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, opts), vm);
   po::notify(vm);
   dynet::Initialize(argc, argv);
-  if(vm.at("train").as<unsigned int>() > 0){
-    switch(vm.at("builder").as<unsigned int>()){
-      case __LSTM__:
-      train<LSTMBuilder>(vm);
-      break;
-      case __FAST_LSTM__:
-      train<FastLSTMBuilder>(vm);
-      break;
-      case __GRU__:
-      train<GRUBuilder>(vm);
-      break;
-      case __RNN__:
-      train<SimpleRNNBuilder>(vm);
-      break;
-    }
-  }
-  if(vm.at("test").as<unsigned int>() > 0){
-    switch(vm.at("builder").as<unsigned int>()){
-      case __LSTM__:
-      test<LSTMBuilder>(vm);
-      break;
-      case __FAST_LSTM__:
-      test<FastLSTMBuilder>(vm);
-      break;
-      case __GRU__:
-      test<GRUBuilder>(vm);
-      break;
-      case __RNN__:
-      test<SimpleRNNBuilder>(vm);
-      break;
-    }
-  }
+  s2s::options options(vm);
+  s2s::train(options);
 }
