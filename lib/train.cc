@@ -266,11 +266,14 @@ std::cout << (order[si] + bsize - remain) << " " << parallel_size << " : " << (b
 
 int main(int argc, char** argv) {
   namespace po = boost::program_options;
-  po::options_description opts("h");
-  s2s::add_options(opts);
+  po::options_description bpo("h");
+  s2s::options options();
+  s2s::set_options(bpo, opts);
   po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, opts), vm);
+  po::store(po::parse_command_line(argc, argv, bpo), vm);
   po::notify(vm);
+  s2s::add_options(&vm, opts);
+  s2s::check_options(&vm, opts);
   dynet::Initialize(argc, argv);
   s2s::options options(vm);
   s2s::train(options);
