@@ -18,9 +18,6 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/program_options.hpp>
 
-#include "s2s/encdec/Cho2014.hpp"
-#include "s2s/encdec/Sutskever2014.hpp"
-#include "s2s/encdec/Bahdanau2014.hpp"
 #include "s2s/encdec.hpp"
 #include "s2s/decode.hpp"
 #include "s2s/define.hpp"
@@ -44,45 +41,10 @@ void print_sent(Sent& osent, dynet::Dict& d_trg){
   cout << endl;
 }
 
-void train(boost::program_options::variables_map& vm){
+void train(const options& opts){
   dynet::Dict d_src, d_trg;
   ParaCorp training, dev;
   vector<Sent > training_src, training_trg, dev_src, dev_trg;
-  SOS_SRC = d_src.Convert("<s>");
-  EOS_SRC = d_src.Convert("</s>");
-  cerr << "Reading source language training text from " << vm.at("path_train_src").as<string>() << "...\n";
-  FreqCut(vm.at("path_train_src").as<string>(), d_src, vm.at("src-vocab-size").as<unsigned int>());
-  d_src.Freeze(); // no new word types allowed
-  d_src.SetUnk("<unk>");
-  UNK_SRC = d_src.Convert("<unk>");
-  vm.at("src-vocab-size").value() = d_src.size();
-  //vm.at("src-vocab-size").as<int>() = d_src.size();
-  LoadCorpus(vm.at("path_train_src").as<string>(), SOS_SRC, EOS_SRC, d_src, training_src);
-
-  SOS_TRG = d_trg.Convert("<s>");
-  EOS_TRG = d_trg.Convert("</s>");
-  cerr << "Reading target language training text from " << vm.at("path_train_trg").as<string>() << "...\n";
-  FreqCut(vm.at("path_train_trg").as<string>(), d_trg, vm.at("trg-vocab-size").as<unsigned int>());
-  d_trg.Freeze(); // no new word types allowed
-  d_trg.SetUnk("<unk>");
-  UNK_TRG = d_trg.Convert("<unk>");
-  vm.at("trg-vocab-size").value() = d_trg.size();
-  //vm.at("trg-vocab-size").as<int>() = d_trg.size();
-  LoadCorpus(vm.at("path_train_trg").as<string>(), SOS_TRG, EOS_TRG, d_trg, training_trg);
-  cerr << "Writing source dictionary to " << vm.at("path_dict_src").as<string>() << "...\n";
-  {
-    ofstream out(vm.at("path_dict_src").as<string>());
-    boost::archive::text_oarchive oa(out);
-    oa << d_src;
-    out.close();
-  }
-  cerr << "Writing target dictionary to " << vm.at("path_dict_trg").as<string>() << "...\n";
-  {
-    ofstream out(vm.at("path_dict_trg").as<string>());
-    boost::archive::text_oarchive oa(out);
-    oa << d_trg;
-    out.close();
-  }
   // for sorting
   for(unsigned int i = 0; i < training_src.size(); i++){
 //cerr << i << " " << training_src.at(i).size() << " " << training_trg.at(i).size() << endl;
