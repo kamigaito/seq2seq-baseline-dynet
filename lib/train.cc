@@ -25,13 +25,9 @@
 #include "s2s/preprocess.hpp"
 #include "s2s/metrics.hpp"
 
-using namespace std;
-using namespace dynet;
-using namespace dynet::expr;
-
 void print_sent(Sent& osent, dynet::Dict& d_trg){
   for(auto wid : osent){
-    string word = d_trg.Convert(wid);
+    std::string word = d_trg.Convert(wid);
     cout << word;
     if(wid == EOS_TRG){
       break;
@@ -39,6 +35,70 @@ void print_sent(Sent& osent, dynet::Dict& d_trg){
     cout << " ";
   }
   cout << endl;
+}
+
+void train(const options& opts){
+    s2s::dicts dicts;
+    s2s::parallel_corpus para_corp;
+    dicts.set(opts);
+    para_corp.load(dicts, opts);
+    dynet::Model model;
+    encoder_decoder* encdec = new encoder_decoder(model, &opts);
+    dynet::Trainer* trainer = nullptr;
+    if(opts.optim == "sgd"){
+        trainer = new SimpleSGDTrainer(&model);
+    }else if(opts.optim == "momentum_sgd"){
+        trainer = new MomentumSGDTrainer(&model);
+    }else if(opts.optim == "adagrad"){
+        trainer = new AdagradTrainer(&model);
+    }else if(opts.optim == "adadelta"){
+        trainer = new AdadeltaTrainer(&model);
+    }else if(opts.optim == "adam"){
+        trainer = new AdamTrainer(&model);
+    }else{
+        std::cerr << "Trainer does not exist !"<< std::endl;
+        assert(false);
+    }
+    unsigned int epoch = 0;
+    while(epoch < opts.epochs){
+        para_corp.shuffle();
+        float align_w = opts.guided_alignment_weight;
+        while(para_corp.status()){
+            batch one_batch = para_corp.batch();
+            ComputationGraph cg;
+            float loss_att = 0.0;
+            float loss_out = 0.0;
+            encdec->encoder(batch.src, cg);
+            dynet::Expression i_feed;
+            for (unsigned int t = 0; t < batch.trg.size() - 1; ++t) {
+                dynet::Expression i_att_t = encdec->decoder_attention(cg, batch.trg[t], i_feed);
+                if(opts.guided_alignment == true){
+                    dynet::Expression i_err = sum_batches(pickneglogsoftmax(i_att_t, batch.align[t]));
+                    loss_att += as_scalar(cg.incremental_foward());
+                    cg.backward(i_err);
+                    trainer->update(align_w * 1.0 / double(batch.bsize));
+                }
+                std::vector<dynet::Expression> i_out_t = encdec->decoder_output(cg, i_att_t);
+                dynet::Expression i_err = sum_batches(pickneglogsoftmax(i_out_t[0], batch.trg[t+1]));
+                i_feed = i_out_t[1];
+                //cg.PrintGraphviz();
+                loss_att += as_scalar(cg.incremental_foward());
+                cg.backward(i_err);
+                trainer->update(1.0 / double(batch.bsize));
+            }
+        }
+        trainer->update_epoch();
+        trainer->status();
+        align_w *= opts.guided_alignment_decay;
+        epoch++;
+        // dev
+
+        // save
+        ofstream out(opts.rootdir + "/" + opts.save_file + "_" +to_string(epoch) + ".model");
+        boost::archive::text_oarchive oa(out);
+        oa << model;
+        out.close();
+    }
 }
 
 void train(const options& opts){
