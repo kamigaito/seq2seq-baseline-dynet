@@ -1,62 +1,145 @@
 
-class dict {
+namespace s2s {
+
+class dicts {
+
     public:
-    dynet::Dict d_src
+
+    std::vector<dynet::Dict> d_src
     dynet::Dict d_trg;
-    unsigned int source_start_id;
-    unsigned int source_end_id;
-    unsigned int source_unk_id;
+
+    std::vector<unsigned int> source_start_id;
+    std::vector<unsigned int> source_end_id;
+    std::vector<unsigned int> source_unk_id;
+
     unsigned int target_start_id;
     unsigned int target_end_id;
     unsigned int target_unk_id;
-    void set(const options &opts){
-        source_start_id = d_src.Convert(opts.start_symbol);
-        source_end_id = d_src.Convert(opts.end_symbol);
-        cerr << "Reading source language training text from " << vm.at("path_train_src").as<string>() << "...\n";
-        freq_cut(vm.at("path_train_src").as<string>(), d_src, vm.at("src-vocab-size").as<unsigned int>());
-        d_src.Freeze(); // no new word types allowed
-        d_src.SetUnk(opts.unk_symbol);
-        source_unk_id = d_src.Convert(opts.unk_symbol);
-        vm.at("src-vocab-size").value() = d_src.size();
-  //vm.at("src-vocab-size").as<int>() = d_src.size();
-        LoadCorpus(vm.at("path_train_src").as<string>(), SOS_SRC, EOS_SRC, d_src, training_src);
 
-        SOS_TRG = d_trg.Convert("<s>");
-        EOS_TRG = d_trg.Convert("</s>");
-        cerr << "Reading target language training text from " << vm.at("path_train_trg").as<string>() << "...\n";
-        FreqCut(vm.at("path_train_trg").as<string>(), d_trg, vm.at("trg-vocab-size").as<unsigned int>());
-        d_trg.Freeze(); // no new word types allowed
-        d_trg.SetUnk("<unk>");
-        UNK_TRG = d_trg.Convert("<unk>");
-        vm.at("trg-vocab-size").value() = d_trg.size();
-  //vm.at("trg-vocab-size").as<int>() = d_trg.size();
-        LoadCorpus(vm.at("path_train_trg").as<string>(), SOS_TRG, EOS_TRG, d_trg, training_trg);
-        cerr << "Writing source dictionary to " << vm.at("path_dict_src").as<string>() << "...\n";
-        {
-            ofstream out(vm.at("path_dict_src").as<string>());
+    void set(const options &opts){
+        // resize vectors
+        d_src.resize(opts.enc_feature_vocab_size.size());
+        source_start_id.resize(opts.enc_feature_vocab_size.size());
+        source_end_id.resize(opts.enc_feature_vocab_size.size());
+        source_unk_id.resize(opts.enc_feature_vocab_size.size());
+        // set start and end of sentence id
+        for(unsigned int feature_id = 0; feature_id < d_src.size(); feature_id++){
+            source_start_id[feature_id] = d_src[feature_id].Convert(opts.start_symbol);
+            source_end_id[feature_id] = d_src[feature_id].Convert(opts.end_symbol);
+        }
+        // constuct source dictionary
+        cerr << "Reading source language training text from " << opts.srcfile << "...\n";
+        freq_cut(opts.srcfile, d_src, opts.unk_symbol, opts.enc_feature_vocab_size);
+        // set unknown id
+        for(unsigned int feature_id = 0; feature_id < d_src.size(); feature_id++){
+            source_unk_id[feature_id] = d_src[feature_id].Convert(opts.unk_symbol);
+        }
+
+        // set start and end of sentence id
+        target_start_id = d_trg.Convert(opts.start_symbol);
+        target_end_id = d_trg.Convert(opts.end_symbol);
+        // constuct target dictionary
+        cerr << "Reading target language training text from " << opts.srcfile << "...\n";
+        freq_cut(opts.trgfile, d_trg, opts.unk_symbol, opts.target_vocab_size);
+        // set unknown id
+        source_unk_id = d_src.Convert(opts.unk_symbol);
+
+    }
+
+    void load(const options &opts){
+        // resize vectors
+        d_src.resize(opts.enc_feature_vocab_size.size());
+        source_start_id.resize(opts.enc_feature_vocab_size.size());
+        source_end_id.resize(opts.enc_feature_vocab_size.size());
+        source_unk_id.resize(opts.enc_feature_vocab_size.size());
+        for(unsigned int i=0; i < d_src.size(); i++){
+            str::string file_name = opts.roodir + "/" + opts.dict_prefix + "src_" + to_string(i) + ".txt";
+            cerr << "Loading source dictionary from " << file_name << "...\n";
+            ifstream in(file_name);
+            boost::archive::text_iarchive ia(out);
+            ia >> d_src.at(i);
+            in.close();
+        }
+        // set start and end of sentence id
+        for(unsigned int feature_id = 0; feature_id < d_src.size(); feature_id++){
+            source_start_id[feature_id] = d_src[feature_id].Convert(opts.start_symbol);
+            source_end_id[feature_id] = d_src[feature_id].Convert(opts.end_symbol);
+        }
+        str::string file_name = opts.roodir + "/" + opts.dict_prefix + "trg.txt";
+        cerr << "Loading target dictionary from " << file_name << "...\n";
+        ifstream in(file_name);
+        boost::archive::text_iarchive ia(out);
+        ia >> d_trg;
+        in.close();
+        // set start and end of sentence id
+        target_start_id = d_trg.Convert(opts.start_symbol);
+        target_end_id = d_trg.Convert(opts.end_symbol);
+    }
+
+    void save(const options &opts){
+        for(unsigned int i=0; i < d_src.size(); i++){
+            str::string file_name = opts.roodir + "/" + opts.dict_prefix + "src_" + to_string(i) + ".txt";
+            cerr << "Writing source dictionary to " << file_name << "...\n";
+            ofstream out(file_name);
             boost::archive::text_oarchive oa(out);
-            oa << d_src;
+            oa << d_src.at(i);
             out.close();
         }
-        cerr << "Writing target dictionary to " << vm.at("path_dict_trg").as<string>() << "...\n";
-        {
-            ofstream out(vm.at("path_dict_trg").as<string>());
-            boost::archive::text_oarchive oa(out);
-            oa << d_trg;
-            out.close();
-        }
+        str::string file_name = opts.roodir + "/" + opts.dict_prefix + "trg.txt";
+        cerr << "Writing target dictionary to " << file_name << "...\n";
+        ofstream out(file_name);
+        boost::archive::text_oarchive oa(out);
+        oa << d_trg;
+        out.close();
     }
-    void load(){
-    }
-    void save(){
-    }
+
 }
 
 class parallel_corpus {
-    std::vector<std::vector<unsigned int> > source;
-    std::vector<std::vector<unsigned int> > target;
-    std::vector<std::vector<unsigned int> > alignment;
-    set(const dict &dic){
+
+    public:
     
+    std::vector<std::vector<unsigned int> > src;
+    std::vector<std::vector<unsigned int> > trg;
+    std::vector<std::vector<unsigned int> > align;
+    std::vector<std::vector<unsigned int> > src_val;
+    std::vector<std::vector<unsigned int> > trg_val;
+    std::vector<std::vector<unsigned int> > align_val;
+    load(const dicts &d, const options &opts){
+        load_corpus_src(opts.srcfile, d.source_start_id, d.source_end_id, d.d_src, src);
+        load_corpus_src(opts.srcvalfile, d.source_start_id, d.source_end_id, d.d_src, src_val);
+        load_corpus_trg(opts.trgfile, d.target_start_id, d.target_end_id, d.d_trg, trg);
+        load_corpus_trg(opts.trgvalfile, d.target_start_id, d.target_end_id, d.d_trg, trg_val);
+        if(opts.guided_alignment == true){
+            load_align_corpus(opts.alignfile, align);
+            load_align_corpus(opts.alignfile, align_val);
+            // check
+            for(unsigned int sid = 0; sid < trg.size(); sid++){
+                if(trg.at(sid).size() != align.at(sid).size()){
+                    cerr << "train corpus: sentence size does not match! \n";
+                    assert(false);
+                }
+                for(const unsigned int tok : trg.at(sid)){
+                    if(tok < 0 || src.at(sid).size() <= tok){
+                        cerr << "train corpus: wrong alignment! \n";
+                        assert(false);
+                    }
+                }
+            }
+            for(unsigned int sid = 0; sid < trg_val.size(); sid++){
+                if(trg_val.at(sid).size() != align_val.at(sid).size()){
+                    cerr << "dev corpus: sentence size does not match! \n";
+                    assert(false);
+                }
+                for(const unsigned int tok : trg_val.at(sid)){
+                    if(tok < 0 || src_val.at(sid).size() <= tok){
+                        cerr << "dev corpus: wrong alignment! \n";
+                        assert(false);
+                    }
+                }
+            }
+        }
     }
+}
+
 }

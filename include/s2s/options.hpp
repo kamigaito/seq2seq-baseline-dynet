@@ -4,9 +4,11 @@ namespace s2s {
 
     class options {
         public:
-        //std::string eval_file;
-        std::string data_file;
-        std::string val_data_file;
+        std::string rootdir;
+        std::string srcfile;
+        std::string targetfile;
+        std::string srcvalfile;
+        std::string targetvalfile;
         std::string save_file;
         std::string dict_prefix;
         //std::string rootdir;
@@ -30,6 +32,7 @@ namespace s2s {
         float dropout;
         float lr_decay;
         unsigned int max_batch_l;
+        unsigned int max_length;
         std::string start_symbol;
         std::string end_symbol;
         std::string unk_symbol;
@@ -42,9 +45,11 @@ namespace s2s {
     void set_options(boost::program_options::options_description &bpo, options &opts){
         namespace po = boost::program_options;
         bpo.add_options()
-        ("rootdir", po::value<std::string>(&(opts.data_file))->requested(), "source train file")
-        ("data_file", po::value<std::string>(&(opts.data_file)), "source train file")
-        ("val_data_file", po::value<std::string>(&(opts.val_data_file)), "source train file")
+        ("rootdir", po::value<std::string>(&(opts.rootdir))->requested(), "source train file")
+        ("srcfile", po::value<std::string>(&(opts.srcfile)), "source train file")
+        ("targetfile", po::value<std::string>(&(opts.targetfile)), "source train file")
+        ("srcvalfile", po::value<std::string>(&(opts.srcvalfile)), "source train file")
+        ("targetvalfile", po::value<std::string>(&(opts.targetvalfile)), "source train file")
         ("save_file_prefix", po::value<std::string>(&(opts.save_file))->default_value("save"), "source train file")
         ("dict_prefix", po::value<std::string>(&(opts.dict_prefix))->default_value("dict_"), "source train file")
         ("num_layers", po::value<unsigned int>(&(opts.num_layers))->default_value(3), "test input")
@@ -67,6 +72,7 @@ namespace s2s {
         ("dropout", po::value<float>(&(opts.dropout))->default_value(0.3), "batch size")
         ("lr_decay", po::value<float>(&(opts.lr_decay))->default_value(1.0), "batch size")
         ("max_batch_l", po::value<unsigned int>(&(opts.max_batch_l))->default_value(32), "batch size")
+        ("max_length", po::value<unsigned int>(&(opts.max_length))->default_value(400), "batch size")
         ("start_symbol", po::value<std::string>(&(opts.start_symbol))->default_value("<s>"), "source train file")
         ("end_symbol", po::value<std::string>(&(opts.end_symbol))->default_value("</s>"), "source train file")
         ("unk_symbol", po::value<std::string>(&(opts.unk_symbol))->default_value("<unk>"), "source train file")
