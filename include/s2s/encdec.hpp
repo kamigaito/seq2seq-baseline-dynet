@@ -97,6 +97,7 @@ public:
             //h_fwd[i] = fwd_enc_builder.add_input(i_x_t);
             fwd_enc_builder->add_input(i_x_t);
             h_fwd[i] = fwd_enc_builder->h.back().back();
+
         }
         // backward encoder
         rev_enc_builder->new_graph(cg);

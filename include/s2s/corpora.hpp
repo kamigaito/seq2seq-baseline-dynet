@@ -113,12 +113,19 @@ namespace s2s {
 
         public:
     
-        std::vector<std::vector<unsigned int> > src;
+        std::vector<std::vector<std::vector<unsigned int> > > src;
         std::vector<std::vector<unsigned int> > trg;
         std::vector<std::vector<unsigned int> > align;
         std::vector<std::vector<unsigned int> > src_val;
         std::vector<std::vector<unsigned int> > trg_val;
         std::vector<std::vector<unsigned int> > align_val;
+        unsigned int index_train;
+        unsigned int index_dev;
+        std::vector<unsigned int> sents_order;
+        parallel_corpus(){
+            index_train = 0;
+            index_dev = 0;
+        }
         load(const dicts &d, const options &opts){
             load_corpus_src(opts.srcfile, d.source_start_id, d.source_end_id, d.d_src, src);
             load_corpus_src(opts.srcvalfile, d.source_start_id, d.source_end_id, d.d_src, src_val);
@@ -153,9 +160,44 @@ namespace s2s {
                     }
                 }
             }
+            sents_order.resize(src.size());
+            std::iota(sents_order.begin(),sents_order.end(),0);
+        }
+        void shuffle(){
+            srand(unsigned(time(NULL)));
+            std::random_shuffle(sents_order.begin(),sents_order.end());
+        }
+        bool train_status(){
+            if(index_train < src.size()){
+                return true;
+            }
+            return false;
+        }
+        batch train_batch(unsigned int batch_size){
+            batch batch_local(index_train, batch_size, src, trg, align, d);
+            return batch_local;
         }
     }
 
-};
+    class batch {
+        public:
+        std::vector<std::vector<std::vector<unsigned int> > > src;
+        std::vector<std::vector<unsigned int> > trg;
+        std::vector<std::vector<unsigned int> > align;
+        batch(
+              const unsigned int index,
+              const unsigned int batch_size,
+              const std::vector<std::vector<unsigned int> > &src,
+              const std::vector<std::vector<unsigned int> > &trg,
+              const std::vector<std::vector<unsigned int> > &align,
+              const dicts& d
+        ){
+        
+        }
+    }
 
+    std::vector<std::vector<unsigned int > > vec_row2col(const unsigned int index, const unsigned int batch_size, const std::vector<std::vector<unsigned int> > &vec_input){
+    
+    }
+};
 #endif
