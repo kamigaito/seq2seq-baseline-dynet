@@ -58,7 +58,8 @@ namespace s2s {
     void beam_decode(){
     }
 
-    void print_sents(std::vector<std::vector<unsigned int > >& osent, const dicts& d){
+    std::string print_sents(std::vector<std::vector<unsigned int > >& osent, const dicts& d){
+        std::string sents = "";
         std::vector<std::vector<unsigned int> > sent_conved;
         sents_conved.resize(osent.size());
         for(unsigned int col_id = 0; col_id < osent.size(); col_id++){
@@ -69,14 +70,15 @@ namespace s2s {
         for(const auto sent : sents_conved){
             for(const auto wid : sent){
                 std::string word = d_trg.Convert(wid);
-                std::cout << word;
+                sents += word;
                 if(wid == d.target_end_id){
                     break;
                 }
-                cout << " ";
+                sents += " ";
             }
-            std::cout << std::endl;
+            sents += std::endl;
         }
+        return sents;
     }
 
 };

@@ -174,6 +174,12 @@ namespace s2s {
             }
             return false;
         }
+        bool dev_status(){
+            if(index_dev < src_val.size()){
+                return true;
+            }
+            return false;
+        }
         batch train_batch(const unsigned int batch_size, const dicts &d){
             batch batch_local(index_train, batch_size, src, trg, align, d);
             index_train += batch.trg.at(0).size();

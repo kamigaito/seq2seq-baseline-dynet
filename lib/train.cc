@@ -81,15 +81,17 @@ void train(const options& opts){
         align_w *= opts.guided_alignment_decay;
         epoch++;
         // dev
+        ofstream dev_sents(opts.rootdir + "/dev_" + to_string(epoch) + ".txt");
         while(para_corp.dev_status()){
             batch one_batch = para_corp.dev_batch(opts.max_batch_l);
             Dynet::ComputationGraph cg;
             std::vector<std::vector<unsigned int> > osent;
             s2s::greedy_decode(para_corp.src_dev.at(sid), osent, encdec, cg, opts);
-            s2s::print_sents(osent, d_trg);
+            dev_sents << s2s::print_sents(osent, d_trg);
         }
+        dev_sents.close();
         // save
-        ofstream out(opts.rootdir + "/" + opts.save_file + "_" +to_string(epoch) + ".model");
+        ofstream out(opts.rootdir + "/" + opts.save_file + "_" + to_string(epoch) + ".model");
         boost::archive::text_oarchive oa(out);
         oa << model;
         out.close();

@@ -45,11 +45,9 @@ public:
     dynet::Expression i_Uahj;
     dynet::Expression i_h_enc;
     unsigned int slen;
-    const boost::program_options::variables_map* opts;
+    const options* opts;
 
-    explicit encoder_decoder(Model& model, const boost::program_options::variables_map* _opts) :
-        vm(_opts)
-    {
+    explicit encoder_decoder(Model& model, const options* _opts){
         p_feature_enc.resize(opts->enc_feature_vec_size.size());
         unsigned int enc_input_size = 0;
         for(unsigned int i = 0; i < opts->enc_feature_vec_size.size(); i++){
@@ -84,17 +82,21 @@ public:
 
     // build graph and return Expression for total loss
     //void BuildGraph(const vector<int>& insent, const vector<int>& osent, ComputationGraph& cg) {
-    std::vector<dynet::Expression> encoder(const Batch sents, dynet::ComputationGraph& cg) {
+    std::vector<dynet::Expression> encoder(const batch &one_batch, dynet::ComputationGraph& cg) {
         // forward encoder
-        slen = sents.size();
+        slen = one_batch.src.size();
         fwd_enc_builder->new_graph(cg);
         fwd_enc_builder->start_new_sequence();
-        std::vector<Expression> h_fwd(sents.size());
-        std::vector<Expression> h_bwd(sents.size());
-        std::vector<Expression> h_bi(sents.size());
-        for (unsigned i = 0; i < sents.size(); ++i) {
-            Expression i_x_t = lookup(cg, p_word_enc, sents[i]);
-            //h_fwd[i] = fwd_enc_builder.add_input(i_x_t);
+        std::vector<dynet::Expression> h_fwd(slen);
+        std::vector<dynet::Expression> h_bwd(slen);
+        std::vector<dynet::Expression> h_bi(slen);
+        for (unsigned int i = 0; i < slen; ++i) {
+            std::vector<dynet::Expression> phi;
+            for(unsigned int f_i = 0; f_i < p_feature_enc.size(); f_i++){
+                dynet::Expression i_f_t = lookup(cg, p_feature_enc[f_i], one_batch.src[i][f_i]);
+                phi.push_back(i_f_t);
+            }
+            dynet::Expression i_x_t = concatenate(phi);
             fwd_enc_builder->add_input(i_x_t);
             h_fwd[i] = fwd_enc_builder->h.back().back();
 
@@ -102,9 +104,13 @@ public:
         // backward encoder
         rev_enc_builder->new_graph(cg);
         rev_enc_builder->start_new_sequence();
-        for (int i = sents.size() - 1; i >= 0; --i) {
-            Expression i_x_t = lookup(cg, p_word_enc, sents[i]);
-            //h_bwd[i] = rev_enc_builder.add_input(i_x_t);
+        for (unsigned int i = slen - 1; i >= 0; --i) {
+            std::vector<dynet::Expression> phi;
+            for(unsigned int f_i = 0; f_i < p_feature_enc.size(); f_i++){
+                dynet::Expression i_f_t = lookup(cg, p_feature_enc[f_i], one_batch.src[i][f_i]);
+                phi.push_back(i_f_t);
+            }
+            dynet::Expression i_x_t = concatenate(phi);
             rev_enc_builder->add_input(i_x_t);
             h_bwd[i] = rev_enc_builder->h.back().back();
         }
@@ -119,18 +125,18 @@ public:
         dec_builder.start_new_sequence(tanh(p_dec_init_w * rev_enc_builder->final_s()) + p_dec_init_bias);
     }
 
-    dynet::Expression decoder_attention(ComputationGraph& cg, const BatchCol prev, dynet::Expression i_feed){
+    dynet::Expression decoder_attention(ComputationGraph& cg, const std::vector<unsigned int> prev, dynet::Expression i_feed){
 
-        Expression i_x_t = lookup(cg, p_word_dec, prev);
-        Expression i_va = parameter(cg, p_va);
-        Expression i_Wa = parameter(cg, p_Wa);
+        dynet::Expression i_x_t = lookup(cg, p_word_dec, prev);
+        dynet::Expression i_va = parameter(cg, p_va);
+        dynet::Expression i_Wa = parameter(cg, p_Wa);
         
-        Expression input = concatenate(std::vector<dynet::Expression>({i_x_t, i_feed}));
-        dec_builder.add_input(input);
-        Expression i_h = concatenate(dec_builder.final_h());
-        Expression i_wah = i_Wa * i_h;
-        Expression i_Wah = concatenate_cols(std::vector<dynet::Expression>(slen, i_wah));
-        Expression i_att_pred_t = transpose(tanh(i_Wah + i_Uahj)) * i_va;
+        dynet::Expression input = concatenate(std::vector<dynet::Expression>({i_x_t, i_feed}));
+        dynet::dec_builder.add_input(input);
+        dynet::Expression i_h = concatenate(dec_builder.final_h());
+        dynet::Expression i_wah = i_Wa * i_h;
+        dynet::Expression i_Wah = concatenate_cols(std::vector<dynet::Expression>(slen, i_wah));
+        dynet::Expression i_att_pred_t = transpose(tanh(i_Wah + i_Uahj)) * i_va;
 
         return i_att_pred_t;
 
@@ -138,13 +144,13 @@ public:
 
     std::vector<dynet::Expression> decoder_output(ComputationGraph& cg, dynet::Expression i_att_pred_t){
 
-        Expression i_out_R = parameter(cg,p_out_R);
-        Expression i_out_bias = parameter(cg,p_out_bias);
+        dynet::Expression i_out_R = parameter(cg,p_out_R);
+        dynet::Expression i_out_bias = parameter(cg,p_out_bias);
         
-        Expression i_alpha_t = softmax(i_att_pred_t);
-        Expression i_c_t = i_h_enc * i_alpha_t;
-        Expression i_feed_next = concatenate(std::vector<Expression>({dec_builder.h.back().back(), i_c_t})); 
-        Expression i_out_pred_t = i_out_bias + i_out_R * i_feed_next;
+        dynet::Expression i_alpha_t = softmax(i_att_pred_t);
+        dynet::Expression i_c_t = i_h_enc * i_alpha_t;
+        dynet::Expression i_feed_next = concatenate(std::vector<Expression>({dec_builder.h.back().back(), i_c_t})); 
+        dynet::Expression i_out_pred_t = i_out_bias + i_out_R * i_feed_next;
         
         return std::vector<dynet::Expression>({i_out_pred_t, i_feed_next});
 
