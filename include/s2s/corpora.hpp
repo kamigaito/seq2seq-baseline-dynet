@@ -166,6 +166,7 @@ namespace s2s {
         void shuffle(){
             srand(unsigned(time(NULL)));
             std::random_shuffle(sents_order.begin(),sents_order.end());
+            index_train = 0;
         }
         bool train_status(){
             if(index_train < src.size()){
@@ -173,8 +174,14 @@ namespace s2s {
             }
             return false;
         }
-        batch train_batch(unsigned int batch_size){
+        batch train_batch(const unsigned int batch_size, const dicts &d){
             batch batch_local(index_train, batch_size, src, trg, align, d);
+            index_train += batch.trg.at(0).size();
+            return batch_local;
+        }
+        batch dev_batch(const unsigned int batch_size, const dicts &d){
+            batch batch_local(index_train, batch_size, src_val, trg_val, align_val, d);
+            index_dev += batch.trg.at(0).size();
             return batch_local;
         }
     }
@@ -187,17 +194,85 @@ namespace s2s {
         batch(
               const unsigned int index,
               const unsigned int batch_size,
-              const std::vector<std::vector<unsigned int> > &src,
+              const std::vector<std::vector<std::vector<unsigned int> > > &src,
               const std::vector<std::vector<unsigned int> > &trg,
               const std::vector<std::vector<unsigned int> > &align,
               const dicts& d
         ){
-        
+            src = src2batch();
+            trg = trg2batch();
+            align = align2batch();
         }
     }
 
-    std::vector<std::vector<unsigned int > > vec_row2col(const unsigned int index, const unsigned int batch_size, const std::vector<std::vector<unsigned int> > &vec_input){
-    
+    std::vector<std::vector<unsigned int > > trg2batch(const unsigned int index, const unsigned int max_batch_size, const std::vector<std::vector<unsigned int> > &vec_input, const unsigned int eos){
+        unsigned int max_len = 0;
+        unsigned int batch_size = 0;
+        for(unsigned int sid = 0; sid < max_batch_size && sid + index < vec_input.size(); sid++){
+            batch_size++;
+            unsigned int cur_len = vec_input.at(sid + index).size();
+            if(cur_len > max_len){
+                max_len = cur_len;
+            }
+        }
+        std::vector<std::vector<unsigned int>> col(max_len, std::vector<unsigned int>(batch_size, eos));
+        for(unsigned int sid = 0; sid < max_batch_size && sid + index < vec_input.size(); sid++){
+            for(unsigned int pos = 0; pos < vec_input.at(sid + index).size(); pos++){
+                col[pos][sid] = vec_input.at(sid + index).at(pos);
+            }
+        }
+        return col;
+    }
+
+    std::vector<std::vector<unsigned int > > src2batch(const unsigned int index, const unsigned int batch_size, const std::vector<std::vector<std::vector<unsigned int> > > &vec_input, const std::vector<unsigned int> vec_eos){
+        unsigned int max_len = 0;
+        unsigned int batch_size = 0;
+        for(unsigned int sid = 0; sid < max_batch_size && sid + index < vec_input.size(); sid++){
+            batch_size++;
+            unsigned int cur_len = vec_input.at(sid + index).size();
+            if(cur_len > max_len){
+                max_len = cur_len;
+            }
+        }
+        std::vector<std::vector<std::vector<unsigned int > > > converted;
+        for(unsigned int pos = 0; pos < max_len; pos++){
+            std::vector<std::vector<unsigned int>> col;
+            for(unsigned int f_id = 0; f_id < vec_eos.size(); f_id++){
+                std::vector<unsigned int> feat(batch_size, vec_eos.at(f_id));
+                for(unsigned int sid = 0; sid < max_batch_size && sid + index < vec_input.size(); sid++){
+                    if(pos < vec_input.at(sid + index).size()){
+                        feat[sid] = vec_input.at(sid + index).at(pos);
+                    }
+                }
+                col.push_back(feat);
+            }
+            converted.push_back(col);
+        }
+        return converted;
+    }
+
+    std::vector<std::vector<unsigned int > > align2batch(const unsigned int index, const unsigned int max_batch_size, const std::vector<std::vector<unsigned int> > &vec_input){
+        unsigned int max_len = 0;
+        unsigned int batch_size = 0;
+        for(unsigned int sid = 0; sid < max_batch_size && sid + index < vec_input.size(); sid++){
+            batch_size++;
+            unsigned int cur_len = vec_input.at(sid + index).size();
+            if(cur_len > max_len){
+                max_len = cur_len;
+            }
+        }
+        std::vector<std::vector<unsigned int>> col(max_len, std::vector<unsigned int>(batch_size, 0));
+        for(unsigned int sid = 0; sid < max_batch_size && sid + index < vec_input.size(); sid++){
+            for(unsigned int pos = 0; pos < max_len; pos++){
+                if(pos < vec_input.at(sid).size()){
+                    col[pos][sid] = vec_input.at(sid + index).at(pos);
+                }else{
+                    col[pos][sid] = vec_input.at(sid + index).back();
+                }
+            }
+        }
+        return col;
     }
 };
+
 #endif

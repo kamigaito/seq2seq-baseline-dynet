@@ -93,7 +93,7 @@ namespace s2s {
             ++tlc;
             std::vector<std::string> tokens;
             boost::algorithm::split_regex(tokens, line, boost::regex(" "));
-            std::vector<std::vector<unsigned int> > str_tokens(({0, 0, 0}), tokens.size());
+            std::vector<std::vector<unsigned int> > str_tokens(tokens.size(), std::vector<unsigned int>(d.d_src.size(), 0));
             ttoks += tokens.size();
             for(unsigned int token_id = 0; token_id < tokens.size(); token_id++) {
                 std::vector<std::string> features;
@@ -119,15 +119,6 @@ namespace s2s {
         assert(in);
         int tlc = 0;
         std::string line = "";
-        while(getline(in, line)) {
-            ++tlc;
-            corpus.push_back(ReadSentence(line, &d));
-            ttoks += corpus.back().size();
-            if (corpus.back().front() != start && corpus.back().back() != end) {
-                cerr << "Sentence in " << file_path << ":" << tlc << " didn't start or end with <s>, </s>\n";
-                abort();
-            }
-        }
         while(getline(in, line)) {
             ++tlc;
             std::vector<std::string>  tokens;
@@ -168,35 +159,6 @@ namespace s2s {
         }
         in.close();
         cerr << tlc << " lines, " << ttoks << " tokens, " << d.size() << " types\n";
-    }
-
-    void corpus_to_batch(const unsigned int bid, const unsigned int bsize, ParaCorp& sents, Batch& lbatch, Batch& rbatch){
-        lbatch.resize(sents.at(bid).first.size());
-        rbatch.resize(sents.at(bid).second.size());
-        for(unsigned int sid = bid; sid< bid + bsize; sid++){
-            for(unsigned int i=0; i<sents.at(bid).first.size(); i++){
-                lbatch[i].push_back(sents.at(sid).first.at(i));
-            }
-            for(unsigned int i=0; i<sents.at(bid).second.size(); i++){
-                rbatch[i].push_back(sents.at(sid).second.at(i));
-            }
-        }
-    }
-
-    void corpus_to_batch(const unsigned int bid, const unsigned int bsize, SentList& sents, Batch& batch){
-        batch.resize(sents.at(bid).size());
-        for(unsigned int sid = bid; sid< bid + bsize; sid++){
-            for(unsigned int i=0; i<sents.at(bid).size(); i++){
-                batch[i].push_back(sents.at(sid).at(i));
-            }
-        }
-    }
-
-    void sent_to_batch(const Sent& sent, Batch& batch){
-        batch.resize(sent.size());
-        for(unsigned int sid=0; sid < sent.size(); sid++){
-            batch[sid].push_back(sent.at(sid));
-	    }
     }
 
 };
