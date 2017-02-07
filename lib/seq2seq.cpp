@@ -24,8 +24,11 @@
 #include "s2s/comp.hpp"
 #include "s2s/preprocess.hpp"
 #include "s2s/metrics.hpp"
+#include "s2s/options.hpp"
 
-void train(const options& opts){
+namespace s2s {
+
+void train(const s2s_options& opts){
     s2s::dicts dicts;
     s2s::parallel_corpus para_corp;
     dicts.set(opts);
@@ -52,8 +55,8 @@ void train(const options& opts){
         // train
         para_corp.shuffle();
         float align_w = opts.guided_alignment_weight;
-        while(para_corp.train_status()){
-            batch one_batch = para_corp.train_batch(opts.max_batch_l);
+        batch one_batch;
+        while(para_corp.train_batch(one_batch, opts.max_batch_l)){
             ComputationGraph cg;
             float loss_att = 0.0;
             float loss_out = 0.0;
@@ -82,9 +85,8 @@ void train(const options& opts){
         epoch++;
         // dev
         ofstream dev_sents(opts.rootdir + "/dev_" + to_string(epoch) + ".txt");
-        while(para_corp.dev_status()){
-            batch one_batch = para_corp.dev_batch(opts.max_batch_l);
-            Dynet::ComputationGraph cg;
+        while(para_corp.dev_batch(one_batch, opts.max_batch_l)){
+            dynet::ComputationGraph cg;
             std::vector<std::vector<unsigned int> > osent;
             s2s::greedy_decode(para_corp.src_dev.at(sid), osent, encdec, cg, opts);
             dev_sents << s2s::print_sents(osent, d_trg);
@@ -98,10 +100,12 @@ void train(const options& opts){
     }
 }
 
+};
+
 int main(int argc, char** argv) {
   namespace po = boost::program_options;
   po::options_description bpo("h");
-  s2s::options options();
+  s2s::s2s_options opts();
   s2s::set_options(bpo, opts);
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, bpo), vm);
@@ -109,6 +113,5 @@ int main(int argc, char** argv) {
   s2s::add_options(&vm, opts);
   s2s::check_options(&vm, opts);
   dynet::Initialize(argc, argv);
-  s2s::options options(vm);
-  s2s::train(options);
+  s2s::train(ops);
 }

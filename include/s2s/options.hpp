@@ -2,13 +2,15 @@
 
 namespace s2s {
 
-    class options {
+    class s2s_options {
         public:
         std::string rootdir;
         std::string srcfile;
-        std::string targetfile;
+        std::string trgfile;
         std::string srcvalfile;
-        std::string targetvalfile;
+        std::string trgvalfile;
+        std::string alignfile;
+        std::string alignvalfile;
         std::string save_file;
         std::string dict_prefix;
         //std::string rootdir;
@@ -39,17 +41,62 @@ namespace s2s {
         unsigned int save_every;
         unsigned int print_every;
         unsigned int seed;
-        options(){}
+        s2s_options(){
+            rootdir = "";
+            srcfile = "";
+            trgfile = "";
+            srcvalfile = "";
+            trgvalfile = "";
+            alignfile = "";
+            alignvalfile = "";
+            save_file = "save_";
+            dict_prefix = "dict_";
+            num_layers = 3;
+            rnn_size = 256;
+            att_size = 256;
+            shared_input = false;
+            /*
+            enc_feature_vec_size;
+            enc_feature_vocab_size;
+            */
+            dec_word_vec_size = 128;
+            dec_word_vocab_size = 20000;
+            guided_alignment = false;
+            guided_alignment_weight = 0.5;
+            guided_alignment_decay = 0.9;
+            guided_output_weight = 1.0;
+            guided_output_decay = 1.0;
+            epochs = 20;
+            start_epoch = 1;
+            optim = "sgd";
+            learning_rate = 1.0;
+            dropout = 0.3;
+            lr_decay = 1.0;
+            max_batch_l = 32;
+            max_length =500;
+            start_symbol = "<s>";
+            end_symbol = "</s>";
+            unk_symbol = "<unk>";
+            save_every = 1;
+            print_every = 1;
+            seed = 1;
+        }
+        void save(){
+        }
+        void load(){
+        }
     };
 
-    void set_options(boost::program_options::options_description &bpo, options &opts){
+    void set_options(boost::program_options::options_description &bpo, s2s_options &opts){
         namespace po = boost::program_options;
         bpo.add_options()
-        ("rootdir", po::value<std::string>(&(opts.rootdir))->requested(), "source train file")
+        ("rootdir", po::value<std::string>(&(opts.rootdir))->required(), "source train file")
         ("srcfile", po::value<std::string>(&(opts.srcfile)), "source train file")
-        ("targetfile", po::value<std::string>(&(opts.targetfile)), "source train file")
+        ("trgfile", po::value<std::string>(&(opts.trgfile)), "source train file")
         ("srcvalfile", po::value<std::string>(&(opts.srcvalfile)), "source train file")
-        ("targetvalfile", po::value<std::string>(&(opts.targetvalfile)), "source train file")
+        ("trgvalfile", po::value<std::string>(&(opts.trgvalfile)), "source train file")
+        ("alignfile", po::value<std::string>(&(opts.alignfile)), "source train file")
+        ("alignvalfile", po::value<std::string>(&(opts.alignvalfile)), "source train file")
         ("save_file_prefix", po::value<std::string>(&(opts.save_file))->default_value("save"), "source train file")
         ("dict_prefix", po::value<std::string>(&(opts.dict_prefix))->default_value("dict_"), "source train file")
         ("num_layers", po::value<unsigned int>(&(opts.num_layers))->default_value(3), "test input")
@@ -64,7 +111,7 @@ namespace s2s {
         ("guided_alignment_weight", po::value<float>(&(opts.guided_alignment_weight))->default_value(0.3), "batch size")
         ("guided_alignment_decay", po::value<float>(&(opts.guided_alignment_decay))->default_value(1.0), "batch size")
         ("guided_output_weight", po::value<float>(&(opts.guided_output_weight))->default_value(1.0), "batch size")
-        ("guided_output_decay", po::value<float>(&(opts.guided_output_decay))->defalt_value(1.0), "batch size")
+        ("guided_output_decay", po::value<float>(&(opts.guided_output_decay))->default_value(1.0), "batch size")
         ("epochs", po::value<unsigned int>(&(opts.epochs))->default_value(15), "batch size")
         ("start_epochs", po::value<unsigned int>(&(opts.epochs))->default_value(1), "batch size")
         ("optim", po::value<std::string>(&(opts.optim))->default_value("sgd"), "source train file")
@@ -81,7 +128,7 @@ namespace s2s {
         ("seed", po::value<unsigned int>(&(opts.seed))->default_value(0), "batch size");
     }
 
-    void add_options(const boost::program_options::variables_map &vm, options &opts){
+    void add_options(const boost::program_options::variables_map &vm, s2s_options &opts){
         string delim (",");
         std::vector<std::string> vec_str_enc_feature_vec_size;
         boost::split(vec_str_enc_feature_vec_size, vm.at("enc_feature_vec_size").as<unsigned int>(), boost::is_any_of(delim));
