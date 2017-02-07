@@ -28,7 +28,7 @@
 
 namespace s2s {
 
-void train(const s2s_options& opts){
+void train(const s2s_options &opts){
     s2s::dicts dicts;
     s2s::parallel_corpus para_corp;
     dicts.set(opts);
@@ -37,15 +37,15 @@ void train(const s2s_options& opts){
     encoder_decoder* encdec = new encoder_decoder(model, &opts);
     dynet::Trainer* trainer = nullptr;
     if(opts.optim == "sgd"){
-        trainer = new SimpleSGDTrainer(&model);
+        trainer = new dynet::SimpleSGDTrainer(model);
     }else if(opts.optim == "momentum_sgd"){
-        trainer = new MomentumSGDTrainer(&model);
+        trainer = new dynet::MomentumSGDTrainer(model);
     }else if(opts.optim == "adagrad"){
-        trainer = new AdagradTrainer(&model);
+        trainer = new dynet::AdagradTrainer(model);
     }else if(opts.optim == "adadelta"){
-        trainer = new AdadeltaTrainer(&model);
+        trainer = new dynet::AdadeltaTrainer(model);
     }else if(opts.optim == "adam"){
-        trainer = new AdamTrainer(&model);
+        trainer = new dynet::AdamTrainer(model);
     }else{
         std::cerr << "Trainer does not exist !"<< std::endl;
         assert(false);
@@ -56,27 +56,27 @@ void train(const s2s_options& opts){
         para_corp.shuffle();
         float align_w = opts.guided_alignment_weight;
         batch one_batch;
-        while(para_corp.train_batch(one_batch, opts.max_batch_l)){
-            ComputationGraph cg;
+        while(para_corp.train_batch(one_batch, opts.max_batch_l, dicts)){
+            dynet::ComputationGraph cg;
             float loss_att = 0.0;
             float loss_out = 0.0;
-            encdec->encoder(one_batch.src, cg);
-            dynet::Expression i_feed;
+            dynet::expr::Expression i_enc = encdec->encoder(one_batch, cg);
+            dynet::expr::Expression i_feed;
             for (unsigned int t = 0; t < one_batch.trg.size() - 1; ++t) {
-                dynet::Expression i_att_t = encdec->decoder_attention(cg, one_batch.trg[t], i_feed);
+                dynet::Expression i_att_t = encdec->decoder_attention(cg, one_batch.trg[t], i_feed, i_enc);
                 if(opts.guided_alignment == true){
                     dynet::Expression i_err = sum_batches(pickneglogsoftmax(i_att_t, one_batch.align[t]));
-                    loss_att += as_scalar(cg.incremental_foward());
+                    loss_att += as_scalar(cg.incremental_forward(i_err));
                     cg.backward(i_err);
-                    trainer->update(align_w * 1.0 / double(one_batch.bsize));
+                    trainer->update(align_w * 1.0 / double(one_batch.src.size()));
                 }
                 std::vector<dynet::Expression> i_out_t = encdec->decoder_output(cg, i_att_t);
                 dynet::Expression i_err = sum_batches(pickneglogsoftmax(i_out_t[0], one_batch.trg[t+1]));
                 i_feed = i_out_t[1];
                 //cg.PrintGraphviz();
-                loss_att += as_scalar(cg.incremental_foward());
+                loss_att += as_scalar(cg.incremental_forward(i_err));
                 cg.backward(i_err);
-                trainer->update(1.0 / double(one_batch.bsize));
+                trainer->update(1.0 / double(one_batch.src.size()));
             }
         }
         trainer->update_epoch();
@@ -85,11 +85,11 @@ void train(const s2s_options& opts){
         epoch++;
         // dev
         ofstream dev_sents(opts.rootdir + "/dev_" + to_string(epoch) + ".txt");
-        while(para_corp.dev_batch(one_batch, opts.max_batch_l)){
+        while(para_corp.dev_batch(one_batch, opts.max_batch_l, dicts)){
             dynet::ComputationGraph cg;
             std::vector<std::vector<unsigned int> > osent;
-            s2s::greedy_decode(para_corp.src_dev.at(sid), osent, encdec, cg, opts);
-            dev_sents << s2s::print_sents(osent, d_trg);
+            s2s::greedy_decode(one_batch, osent, encdec, cg, dicts, opts);
+            dev_sents << s2s::print_sents(osent, dicts);
         }
         dev_sents.close();
         // save
@@ -105,13 +105,13 @@ void train(const s2s_options& opts){
 int main(int argc, char** argv) {
   namespace po = boost::program_options;
   po::options_description bpo("h");
-  s2s::s2s_options opts();
-  s2s::set_options(bpo, opts);
+  s2s::s2s_options opts;
+  s2s::set_s2s_options(&bpo, &opts);
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, bpo), vm);
   po::notify(vm);
-  s2s::add_options(&vm, opts);
-  s2s::check_options(&vm, opts);
-  dynet::Initialize(argc, argv);
-  s2s::train(ops);
+  s2s::add_s2s_options(&vm, &opts);
+  s2s::check_s2s_options(&vm, opts);
+  dynet::initialize(argc, argv);
+  s2s::train(opts);
 }

@@ -11,12 +11,12 @@ namespace s2s {
         std::map<std::string, bool> word_src;
         std::map<std::string, bool> word_trg;
         for(auto i : output){
-            word_src[d_src.Convert(i)] = true;
+            word_src[d_src.convert(i)] = true;
         }
         double cnt = 0;
         for(auto o : ref){
-            word_trg[d_trg.Convert(o)] = true;
-            if(word_src.count(d_trg.Convert(o)) > 0){
+            word_trg[d_trg.convert(o)] = true;
+            if(word_src.count(d_trg.convert(o)) > 0){
                 cnt++;
             }
         }
@@ -26,7 +26,7 @@ namespace s2s {
         double p = (double)(cnt) / (double)(ref.size());
         cnt = 0;
         for(auto i : output){
-            if(word_trg.count(d_trg.Convert(i)) > 0){
+            if(word_trg.count(d_trg.convert(i)) > 0){
                 cnt++;
             }
         }

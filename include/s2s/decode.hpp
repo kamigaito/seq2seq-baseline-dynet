@@ -1,4 +1,5 @@
 #include "dynet/nodes.h"
+#include "dynet/exec.h"
 #include "dynet/dynet.h"
 #include "dynet/training.h"
 #include "dynet/timing.h"
@@ -26,18 +27,17 @@
 
 namespace s2s {
 
-    template <class Builder>
-    void greedy_decode(const batch& one_batch, std::vector<std::vector<unsigned int > >& osent, encoder_decoder *encdec, ComputationGraph &cg, const dicts &d, const options &opts){
+    void greedy_decode(const batch& one_batch, std::vector<std::vector<unsigned int > >& osent, encoder_decoder *encdec, dynet::ComputationGraph &cg, dicts &d, const s2s_options &opts){
         //unsigned slen = sents.size();
-        encdec->encoder(one_batch.src, cg);
-        osent.push_back(std::vector<unsigned int>(d.target_start_id, one_batch.at(0).size()));
-        dynet::Expression i_feed;
+        dynet::expr::Expression i_enc = encdec->encoder(one_batch, cg);
+        osent.push_back(std::vector<unsigned int>(d.target_start_id, one_batch.src.at(0).size()));
+        dynet::expr::Expression i_feed;
         for (int t = 1; t < opts.max_length; ++t) {
-            Expression i_att_t = encdec->decoder_attention(cg, osent[t-1], i_feed);
+            Expression i_att_t = encdec->decoder_attention(cg, osent[t-1], i_feed, i_enc);
             std::vector<dynet::Expression> i_out_t = encdec->decoder_output(cg, i_att_t);
             i_feed = i_out_t[1];
             Expression predict = softmax(i_out_t[0]);
-            std::vector<dynet::Tensor> results = cg.incremental_forward().batch_elems();
+            std::vector<dynet::Tensor> results = cg.incremental_forward(predict).batch_elems();
             std::vector<unsigned int> osent_col;
             for(unsigned int i=0; results.size(); i++){
                 auto output = as_vector(results.at(i));
@@ -58,9 +58,9 @@ namespace s2s {
     void beam_decode(){
     }
 
-    std::string print_sents(std::vector<std::vector<unsigned int > >& osent, const dicts& d){
+    std::string print_sents(std::vector<std::vector<unsigned int > >& osent, dicts& d){
         std::string sents = "";
-        std::vector<std::vector<unsigned int> > sent_conved;
+        std::vector<std::vector<unsigned int> > sents_conved;
         sents_conved.resize(osent.size());
         for(unsigned int col_id = 0; col_id < osent.size(); col_id++){
             for(unsigned int sid = 0; osent.at(col_id).size(); sid++){
@@ -69,14 +69,14 @@ namespace s2s {
         }
         for(const auto sent : sents_conved){
             for(const auto wid : sent){
-                std::string word = d_trg.Convert(wid);
+                std::string word = d.d_trg.convert(wid);
                 sents += word;
                 if(wid == d.target_end_id){
                     break;
                 }
                 sents += " ";
             }
-            sents += std::endl;
+            sents += "\n";
         }
         return sents;
     }
