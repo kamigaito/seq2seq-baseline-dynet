@@ -10,6 +10,9 @@ OBJ=$(SRC:seq2seq.cpp=seq2seq.o)
 
 all:$(TARGET)
 $(TARGET):$(OBJ)
+	@if [ ! -d ./bin ]; then \
+		echo ";; mkdir ./bin"; mkdir ./bin; \
+	fi
 	$(CC) $(OPT) $(LIBS) $(INCLUDES) -o $(TARGET) $(OBJ) $(LINK)
 
 .cpp.o:
@@ -20,5 +23,7 @@ makefile.depend:
 
 clean:
 	rm ./lib/*.o ./makefile.depend
+	rm ./bin/seq2seq
+	rmdir ./bin
 
 -include makefile.depend
