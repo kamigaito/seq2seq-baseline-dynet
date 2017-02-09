@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
     dynet::initialize(argc, argv);
     if(vm.at("mode").as<std::string>() == "train"){
         s2s::add_s2s_options_train(&vm, &opts);
-        s2s::check_s2s_options(&vm, opts);
+        s2s::check_s2s_options_train(&vm, opts);
         ofstream out(opts.rootdir + "/options.txt");
         boost::archive::text_oarchive oa(out);
         oa << opts;
@@ -150,6 +150,7 @@ int main(int argc, char** argv) {
         ia >> opts;
         in.close();
         s2s::add_s2s_options_predict(&vm, &opts);
+        s2s::check_s2s_options_predict(&vm, opts);
         s2s::predict(opts);
     }else if(vm.at("mode").as<std::string>() == "test"){
 

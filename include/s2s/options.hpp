@@ -198,10 +198,15 @@ private:
     void add_s2s_options_predict(const boost::program_options::variables_map &vm, s2s_options *opts){
         opts->rootdir = vm.at("rootdir").as<std::string>();
         opts->srcfile = vm.at("srcfile").as<std::string>();
+        opts->trgfile = vm.at("trgfile").as<std::string>();
         opts->modelfile = vm.at("modelfile").as<std::string>();
     }
 
-    bool check_s2s_options(const boost::program_options::variables_map &vm, const s2s_options &opts){
+    bool check_s2s_options_train(const boost::program_options::variables_map &vm, const s2s_options &opts){
+    
+    }
+
+    bool check_s2s_options_predict(const boost::program_options::variables_map &vm, const s2s_options &opts){
     
     }
 };
