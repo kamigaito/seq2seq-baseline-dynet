@@ -133,6 +133,15 @@ namespace s2s {
             trg = trg2batch(sents_order, index, batch_size, trg_input, d.target_end_id);
             align = align2batch(sents_order, index, batch_size, align_input);
         }
+        void set(
+              const std::vector<unsigned int> sents_order,
+              const unsigned int index,
+              const unsigned int batch_size,
+              const std::vector<std::vector<std::vector<unsigned int> > > &src_input,
+              const dicts& d
+        ){
+            src = src2batch(sents_order, index, batch_size, src_input, d.source_end_id);
+        }
     };
 
     class monoling_corpus {
