@@ -120,6 +120,7 @@ namespace s2s {
         std::vector<std::vector<unsigned int> > align;
         batch(){}
         void set(
+              const std::vector<unsigned int> sents_order,
               const unsigned int index,
               const unsigned int batch_size,
               const std::vector<std::vector<std::vector<unsigned int> > > &src_input,
@@ -127,9 +128,9 @@ namespace s2s {
               const std::vector<std::vector<unsigned int> > &align_input,
               const dicts& d
         ){
-            src = src2batch(index, batch_size, src_input, d.source_end_id);
-            trg = trg2batch(index, batch_size, trg_input, d.target_end_id);
-            align = align2batch(index, batch_size, align_input);
+            src = src2batch(sents_order, index, batch_size, src_input, d.source_end_id);
+            trg = trg2batch(sents_order, index, batch_size, trg_input, d.target_end_id);
+            align = align2batch(sents_order, index, batch_size, align_input);
         }
     };
 
@@ -146,6 +147,7 @@ namespace s2s {
         unsigned int index_train;
         unsigned int index_dev;
         std::vector<unsigned int> sents_order;
+        std::vector<unsigned int> sents_dev_order;
         parallel_corpus(){
             index_train = 0;
             index_dev = 0;
@@ -185,7 +187,9 @@ namespace s2s {
                 }
             }
             sents_order.resize(src.size());
-            std::iota(sents_order.begin(),sents_order.end(),0);
+            std::iota(sents_order.begin(), sents_order.end(), 0);
+            sents_dev_order.resize(src_val.size());
+            std::iota(sents_dev_order.begin(), sents_dev_order.end(), 0);
         }
         void shuffle(){
             srand(unsigned(time(NULL)));
@@ -193,7 +197,7 @@ namespace s2s {
             index_train = 0;
         }
         bool train_batch(batch& batch_local, const unsigned int batch_size, dicts &d){
-            batch_local.set(index_train, batch_size, src, trg, align, d);
+            batch_local.set(sents_order, index_train, batch_size, src, trg, align, d);
             if(index_train < src.size()){
                 index_train += batch_local.trg.at(0).size();
                 return true;
@@ -201,7 +205,7 @@ namespace s2s {
             return false;
         }
         bool dev_batch(batch& batch_local, const unsigned int batch_size, dicts &d){
-            batch_local.set(index_train, batch_size, src_val, trg_val, align_val, d);
+            batch_local.set(sents_dev_order, index_train, batch_size, src_val, trg_val, align_val, d);
             index_dev += batch_local.trg.at(0).size();
             if(index_dev < src_val.size()){
                 return true;
