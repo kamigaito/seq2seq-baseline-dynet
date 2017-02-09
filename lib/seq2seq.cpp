@@ -29,6 +29,8 @@
 namespace s2s {
 
     void train(const s2s_options &opts){
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::dicts dicts;
         s2s::parallel_corpus para_corp;
         dicts.set(opts);
@@ -139,20 +141,33 @@ int main(int argc, char** argv) {
     po::notify(vm);
     dynet::initialize(argc, argv);
     if(vm.at("mode").as<std::string>() == "train"){
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::add_s2s_options_train(&vm, &opts);
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::check_s2s_options_train(&vm, opts);
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         ofstream out(opts.rootdir + "/options.txt");
         boost::archive::text_oarchive oa(out);
         oa << opts;
         out.close();
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::train(opts);
     }else if(vm.at("mode").as<std::string>() == "predict"){
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         ifstream in(opts.rootdir + "/options.txt");
         boost::archive::text_iarchive ia(in);
         ia >> opts;
         in.close();
-        s2s::add_s2s_options_predict(&vm, &opts);
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::check_s2s_options_predict(&vm, opts);
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::predict(opts);
     }else if(vm.at("mode").as<std::string>() == "test"){
 

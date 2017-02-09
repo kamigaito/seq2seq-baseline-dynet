@@ -17,6 +17,7 @@ namespace s2s {
 
     struct s2s_options {
         public:
+        std::string mode;
         std::string rootdir;
         std::string srcfile;
         std::string trgfile;
@@ -32,6 +33,8 @@ namespace s2s {
         unsigned int rnn_size;
         unsigned int att_size;
         bool shared_input;
+        std::string enc_feature_vec_size_str;
+        std::string enc_feature_vocab_size_str;
         std::vector<unsigned int> enc_feature_vec_size;
         std::vector<unsigned int> enc_feature_vocab_size;
         unsigned int dec_word_vec_size;
@@ -56,6 +59,7 @@ namespace s2s {
         unsigned int print_every;
         unsigned int seed;
         s2s_options(){
+            mode = "";
             rootdir = "";
             srcfile = "";
             trgfile = "";
@@ -73,6 +77,8 @@ namespace s2s {
             enc_feature_vec_size;
             enc_feature_vocab_size;
             */
+            enc_feature_vec_size_str = "256";
+            enc_feature_vocab_size_str = "20000";
             dec_word_vec_size = 128;
             dec_word_vocab_size = 20000;
             guided_alignment = false;
@@ -134,23 +140,23 @@ private:
     void set_s2s_options(boost::program_options::options_description *bpo, s2s_options *opts) {
         namespace po = boost::program_options;
         bpo->add_options()
-        ("mode", po::value<std::string>()->required(), "select from 'train', 'predict' or 'test'")
-        ("rootdir", po::value<std::string>()->required(), "source train file")
-        ("srcfile", po::value<std::string>()->required(), "source train file")
-        ("trgfile", po::value<std::string>()->required(), "source train file")
-        ("srcvalfile", po::value<std::string>(), "source train file")
-        ("trgvalfile", po::value<std::string>(), "source train file")
-        ("alignfile", po::value<std::string>(), "source train file")
-        ("alignvalfile", po::value<std::string>(), "source train file")
-        ("modelfile", po::value<std::string>(), "source train file")
+        ("mode", po::value<std::string>(&(opts->mode))->required(), "select from 'train', 'predict' or 'test'")
+        ("rootdir", po::value<std::string>(&(opts->rootdir))->required(), "source train file")
+        ("srcfile", po::value<std::string>(&(opts->srcfile))->required(), "source train file")
+        ("trgfile", po::value<std::string>(&(opts->trgfile))->required(), "source train file")
+        ("srcvalfile", po::value<std::string>(&(opts->srcvalfile)), "source train file")
+        ("trgvalfile", po::value<std::string>(&(opts->trgvalfile)), "source train file")
+        ("alignfile", po::value<std::string>(&(opts->alignfile)), "source train file")
+        ("alignvalfile", po::value<std::string>(&(opts->alignvalfile)), "source train file")
+        ("modelfile", po::value<std::string>(&(opts->modelfile)), "source train file")
         ("save_file_prefix", po::value<std::string>(&(opts->save_file))->default_value("save"), "source train file")
         ("dict_prefix", po::value<std::string>(&(opts->dict_prefix))->default_value("dict_"), "source train file")
         ("num_layers", po::value<unsigned int>(&(opts->num_layers))->default_value(3), "test input")
         ("rnn_size", po::value<unsigned int>(&(opts->rnn_size))->default_value(256), "test input")
         ("att_size", po::value<unsigned int>(&(opts->att_size))->default_value(256), "batch size")
         ("shared_input", po::value<bool>(&(opts->shared_input))->default_value(false), "batch size")
-        ("enc_feature_vec_size", po::value<std::string>(), "target train file")
-        ("enc_feature_vocab_size", po::value<std::string>(), "target train file")
+        ("enc_feature_vec_size", po::value<std::string>(&(opts->enc_feature_vec_size_str))->default_value("256"), "target train file")
+        ("enc_feature_vocab_size", po::value<std::string>(&(opts->enc_feature_vocab_size_str))->default_value("256"), "target train file")
         ("dec_word_vec_size", po::value<unsigned int>(&(opts->dec_word_vec_size)), "batch size")
         ("dec_word_vocab_size", po::value<unsigned int>(&(opts->dec_word_vocab_size)), "batch size")
         ("guided_alignment", po::value<bool>(&(opts->guided_alignment))->default_value(false), "batch size")
@@ -176,30 +182,20 @@ private:
 
     void add_s2s_options_train(const boost::program_options::variables_map &vm, s2s_options *opts){
         std::vector<std::string> vec_str_enc_feature_vec_size;
-        boost::algorithm::split_regex(vec_str_enc_feature_vec_size, vm.at("enc_feature_vec_size").as<std::string>(), boost::regex(","));
+        boost::algorithm::split_regex(vec_str_enc_feature_vec_size, opts->enc_feature_vec_size_str, boost::regex(","));
         for(auto feature_vec_size : vec_str_enc_feature_vec_size){
+            // for debug
+            std::cerr << "F:" << __FILE__ << "\t" << "L:" << __LINE__ << "\t" << feature_vec_size << std::endl;
             opts->enc_feature_vec_size.push_back(std::stoi(feature_vec_size));
         }
         std::vector<std::string> vec_str_enc_feature_vocab_size;
-        boost::algorithm::split_regex(vec_str_enc_feature_vocab_size, vm.at("enc_feature_vec_size").as<std::string>(), boost::regex(","));
+        boost::algorithm::split_regex(vec_str_enc_feature_vocab_size, opts->enc_feature_vocab_size_str, boost::regex(","));
         for(auto feature_vocab_size : vec_str_enc_feature_vocab_size){
+            // for debug
+            std::cerr << "F:" << __FILE__ << "\t" << "L:" << __LINE__ << "\t" << feature_vocab_size << std::endl;
             opts->enc_feature_vocab_size.push_back(std::stoi(feature_vocab_size));
         }
-        assert(opts->enc_feature_vocab_size.size() != opts->enc_feature_vec_size.size());
-        opts->rootdir = vm.at("rootdir").as<std::string>();
-        opts->srcfile = vm.at("srcfile").as<std::string>();
-        opts->trgfile = vm.at("trgfile").as<std::string>();
-        opts->srcvalfile = vm.at("srcvalfile").as<std::string>();
-        opts->trgvalfile = vm.at("trgvalfile").as<std::string>();
-        opts->alignfile = vm.at("alignfile").as<std::string>();
-        opts->alignvalfile = vm.at("alignvalfile").as<std::string>();
-    }
-
-    void add_s2s_options_predict(const boost::program_options::variables_map &vm, s2s_options *opts){
-        opts->rootdir = vm.at("rootdir").as<std::string>();
-        opts->srcfile = vm.at("srcfile").as<std::string>();
-        opts->trgfile = vm.at("trgfile").as<std::string>();
-        opts->modelfile = vm.at("modelfile").as<std::string>();
+        assert(opts->enc_feature_vocab_size.size() == opts->enc_feature_vec_size.size());
     }
 
     bool check_s2s_options_train(const boost::program_options::variables_map &vm, const s2s_options &opts){
