@@ -25,6 +25,7 @@ namespace s2s {
         std::string alignfile;
         std::string alignvalfile;
         std::string save_file;
+        std::string modelfile;
         std::string dict_prefix;
         //std::string rootdir;
         unsigned int num_layers;
@@ -98,13 +99,6 @@ private:
         friend class boost::serialization::access;
         template<class Archive>
         void serialize(Archive & ar, const unsigned int version) {
-            ar & rootdir;
-            ar & srcfile;
-            ar & trgfile;
-            ar & srcvalfile;
-            ar & trgvalfile;
-            ar & alignfile;
-            ar & alignvalfile;
             ar & save_file;
             ar & dict_prefix;
             ar & num_layers;
@@ -140,13 +134,15 @@ private:
     void set_s2s_options(boost::program_options::options_description *bpo, s2s_options *opts) {
         namespace po = boost::program_options;
         bpo->add_options()
-        ("rootdir", po::value<std::string>(&(opts->rootdir))->required(), "source train file")
-        ("srcfile", po::value<std::string>(&(opts->srcfile))->required(), "source train file")
-        ("trgfile", po::value<std::string>(&(opts->trgfile)), "source train file")
-        ("srcvalfile", po::value<std::string>(&(opts->srcvalfile)), "source train file")
-        ("trgvalfile", po::value<std::string>(&(opts->trgvalfile)), "source train file")
-        ("alignfile", po::value<std::string>(&(opts->alignfile)), "source train file")
-        ("alignvalfile", po::value<std::string>(&(opts->alignvalfile)), "source train file")
+        ("mode", po::value<std::string>()->required(), "select from 'train', 'predict' or 'test'")
+        ("rootdir", po::value<std::string>()->required(), "source train file")
+        ("srcfile", po::value<std::string>()->required(), "source train file")
+        ("trgfile", po::value<std::string>()->required(), "source train file")
+        ("srcvalfile", po::value<std::string>(), "source train file")
+        ("trgvalfile", po::value<std::string>(), "source train file")
+        ("alignfile", po::value<std::string>(), "source train file")
+        ("alignvalfile", po::value<std::string>(), "source train file")
+        ("modelfile", po::value<std::string>(), "source train file")
         ("save_file_prefix", po::value<std::string>(&(opts->save_file))->default_value("save"), "source train file")
         ("dict_prefix", po::value<std::string>(&(opts->dict_prefix))->default_value("dict_"), "source train file")
         ("num_layers", po::value<unsigned int>(&(opts->num_layers))->default_value(3), "test input")
@@ -178,7 +174,7 @@ private:
         ("seed", po::value<unsigned int>(&(opts->seed))->default_value(0), "batch size");
     }
 
-    void add_s2s_options(const boost::program_options::variables_map &vm, s2s_options *opts){
+    void add_s2s_options_train(const boost::program_options::variables_map &vm, s2s_options *opts){
         std::vector<std::string> vec_str_enc_feature_vec_size;
         boost::algorithm::split_regex(vec_str_enc_feature_vec_size, vm.at("enc_feature_vec_size").as<std::string>(), boost::regex(","));
         for(auto feature_vec_size : vec_str_enc_feature_vec_size){
@@ -190,6 +186,19 @@ private:
             opts->enc_feature_vocab_size.push_back(std::stoi(feature_vocab_size));
         }
         assert(opts->enc_feature_vocab_size.size() != opts->enc_feature_vec_size.size());
+        opts->rootdir = vm.at("rootdir").as<std::string>();
+        opts->srcfile = vm.at("srcfile").as<std::string>();
+        opts->trgfile = vm.at("trgfile").as<std::string>();
+        opts->srcvalfile = vm.at("srcvalfile").as<std::string>();
+        opts->trgvalfile = vm.at("trgvalfile").as<std::string>();
+        opts->alignfile = vm.at("alignfile").as<std::string>();
+        opts->alignvalfile = vm.at("alignvalfile").as<std::string>();
+    }
+
+    void add_s2s_options_predict(const boost::program_options::variables_map &vm, s2s_options *opts){
+        opts->rootdir = vm.at("rootdir").as<std::string>();
+        opts->srcfile = vm.at("srcfile").as<std::string>();
+        opts->modelfile = vm.at("modelfile").as<std::string>();
     }
 
     bool check_s2s_options(const boost::program_options::variables_map &vm, const s2s_options &opts){
