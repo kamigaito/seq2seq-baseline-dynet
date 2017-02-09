@@ -43,10 +43,8 @@ public:
     dynet::LSTMBuilder rev_enc_builder;
     dynet::LSTMBuilder fwd_enc_builder;
     unsigned int slen;
-    const s2s_options* opts;
 
-    explicit encoder_decoder(dynet::Model& model, const s2s_options* _opts) {
-        opts = _opts;
+    explicit encoder_decoder(dynet::Model& model, const s2s_options* opts) {
 
         unsigned int num_layers = opts->num_layers;
         unsigned int rnn_size = opts->rnn_size;
@@ -178,6 +176,18 @@ public:
         
         return std::vector<dynet::expr::Expression>({i_out_pred_t, i_feed_next});
 
+    }
+
+    void disable_dropout(){
+        fwd_enc_builder.disable_dropout();
+        rev_enc_builder.disable_dropout();
+        dec_builder.disable_dropout();
+    }
+
+    void set_dropout(float d){
+        fwd_enc_builder.set_dropout(d);
+        rev_enc_builder.set_dropout(d);
+        dec_builder.set_dropout(d);
     }
 
 private:

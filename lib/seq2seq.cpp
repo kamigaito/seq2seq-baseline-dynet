@@ -86,6 +86,7 @@ namespace s2s {
             align_w *= opts.guided_alignment_decay;
             epoch++;
             // dev
+            encdec->disable_dropout();
             ofstream dev_sents(opts.rootdir + "/dev_" + to_string(epoch) + ".txt");
             while(para_corp.dev_batch(one_batch, opts.max_batch_l, dicts)){
                 dynet::ComputationGraph cg;
@@ -94,6 +95,7 @@ namespace s2s {
                 dev_sents << s2s::print_sents(osent, dicts);
             }
             dev_sents.close();
+            encdec->set_dropout(opts.dropout);
             // save Model
             ofstream model_out(opts.rootdir + "/" + opts.save_file + "_" + to_string(epoch) + ".model");
             boost::archive::text_oarchive model_oa(model_out);
@@ -112,6 +114,7 @@ namespace s2s {
         boost::archive::text_iarchive model_ia(model_in);
         model_ia >> model >> *encdec;
         model_in.close();
+        encdec->disable_dropout();
         // predict
         s2s::parallel_corpus para_corp;
         batch one_batch;
