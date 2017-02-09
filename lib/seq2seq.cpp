@@ -60,17 +60,17 @@ void train(const s2s_options &opts){
             dynet::ComputationGraph cg;
             float loss_att = 0.0;
             float loss_out = 0.0;
-            dynet::expr::Expression i_enc = encdec->encoder(one_batch, cg);
+            std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
             dynet::expr::Expression i_feed;
             for (unsigned int t = 0; t < one_batch.trg.size() - 1; ++t) {
-                dynet::Expression i_att_t = encdec->decoder_attention(cg, one_batch.trg[t], i_feed, i_enc);
+                dynet::expr::Expression i_att_t = encdec->decoder_attention(cg, one_batch.trg[t], i_feed, i_enc[0]);
                 if(opts.guided_alignment == true){
-                    dynet::Expression i_err = sum_batches(pickneglogsoftmax(i_att_t, one_batch.align[t]));
+                    dynet::expr::Expression i_err = sum_batches(pickneglogsoftmax(i_att_t, one_batch.align[t]));
                     loss_att += as_scalar(cg.incremental_forward(i_err));
                     cg.backward(i_err);
                     trainer->update(align_w * 1.0 / double(one_batch.src.size()));
                 }
-                std::vector<dynet::Expression> i_out_t = encdec->decoder_output(cg, i_att_t);
+                std::vector<dynet::expr::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);
                 dynet::Expression i_err = sum_batches(pickneglogsoftmax(i_out_t[0], one_batch.trg[t+1]));
                 i_feed = i_out_t[1];
                 //cg.PrintGraphviz();

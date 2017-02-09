@@ -94,9 +94,46 @@ namespace s2s {
             print_every = 1;
             seed = 1;
         }
-        void save(){
-        }
-        void load(){
+private:
+        friend class boost::serialization::access;
+        template<class Archive>
+        void serialize(Archive & ar, const unsigned int version) {
+            ar & rootdir;
+            ar & srcfile;
+            ar & trgfile;
+            ar & srcvalfile;
+            ar & trgvalfile;
+            ar & alignfile;
+            ar & alignvalfile;
+            ar & save_file;
+            ar & dict_prefix;
+            ar & num_layers;
+            ar & rnn_size;
+            ar & att_size;
+            ar & shared_input;
+            ar & enc_feature_vec_size;
+            ar & enc_feature_vocab_size;
+            ar & dec_word_vec_size;
+            ar & dec_word_vocab_size;
+            ar & guided_alignment;
+            ar & guided_alignment_weight;
+            ar & guided_alignment_decay;
+            ar & guided_output_weight;
+            ar & guided_output_decay;
+            ar & epochs;
+            ar & start_epoch;
+            ar & optim;
+            ar & learning_rate;
+            ar & dropout;
+            ar & lr_decay;
+            ar & max_batch_l;
+            ar & max_length;
+            ar & start_symbol;
+            ar & end_symbol;
+            ar & unk_symbol;
+            ar & save_every;
+            ar & print_every;
+            ar & seed;
         }
     };
 

@@ -42,8 +42,6 @@ public:
     dynet::LSTMBuilder dec_builder;
     dynet::LSTMBuilder rev_enc_builder;
     dynet::LSTMBuilder fwd_enc_builder;
-    dynet::expr::Expression i_Uahj;
-    dynet::expr::Expression i_h_enc;
     unsigned int slen;
     const s2s_options* opts;
 
@@ -99,9 +97,7 @@ public:
         );
     }
 
-    // build graph and return Expression for total loss
-    //void BuildGraph(const vector<int>& insent, const vector<int>& osent, ComputationGraph& cg) {
-    dynet::expr::Expression encoder(const batch &one_batch, dynet::ComputationGraph& cg) {
+    std::vector<dynet::expr::Expression> encoder(const batch &one_batch, dynet::ComputationGraph& cg) {
         // forward encoder
         slen = one_batch.src.size();
         fwd_enc_builder.new_graph(cg);
@@ -137,7 +133,7 @@ public:
         for (unsigned i = 0; i < slen; ++i) {
             h_bi[i] = concatenate(std::vector<Expression>({h_fwd[i], h_bwd[i]}));
         }
-        i_h_enc = concatenate_cols(h_bi);
+        dynet::expr::Expression i_h_enc = concatenate_cols(h_bi);
         dynet::expr::Expression i_Ua = parameter(cg, p_Ua);
         dynet::expr::Expression i_Uahj = i_Ua * i_h_enc;
         // Initialize decoder
@@ -150,7 +146,7 @@ public:
             vec_dec_init_state.push_back(tanh(i_dec_init_w * vec_enc_final_state[i]) + i_dec_init_bias);
         }
         dec_builder.start_new_sequence(vec_dec_init_state);
-        return i_Uahj;
+        return std::vector<dynet::expr::Expression>({i_Uahj, i_h_enc});
     }
 
     dynet::expr::Expression decoder_attention(dynet::ComputationGraph& cg, const std::vector<unsigned int> prev, const dynet::expr::Expression i_feed, const dynet::expr::Expression i_Uahj){
@@ -170,7 +166,7 @@ public:
 
     }
 
-    std::vector<dynet::expr::Expression> decoder_output(dynet::ComputationGraph& cg, const dynet::expr::Expression i_att_pred_t){
+    std::vector<dynet::expr::Expression> decoder_output(dynet::ComputationGraph& cg, const dynet::expr::Expression i_att_pred_t, const dynet::expr::Expression i_h_enc){
 
         dynet::expr::Expression i_out_R = parameter(cg,p_out_R);
         dynet::expr::Expression i_out_bias = parameter(cg,p_out_bias);
@@ -183,7 +179,25 @@ public:
         return std::vector<dynet::expr::Expression>({i_out_pred_t, i_feed_next});
 
     }
-  
+
+private:
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version) {
+        ar & p_feature_enc;
+        ar & p_word_dec;
+        ar & p_dec_init_bias;
+        ar & p_dec_init_w;
+        ar & p_Wa;
+        ar & p_Ua;
+        ar & p_va;
+        ar & p_out_R;
+        ar & p_out_bias;
+        ar & dec_builder;
+        ar & rev_enc_builder;
+        ar & fwd_enc_builder;
+    }
+ 
 };
 
 }

@@ -29,12 +29,12 @@ namespace s2s {
 
     void greedy_decode(const batch& one_batch, std::vector<std::vector<unsigned int > >& osent, encoder_decoder *encdec, dynet::ComputationGraph &cg, dicts &d, const s2s_options &opts){
         //unsigned slen = sents.size();
-        dynet::expr::Expression i_enc = encdec->encoder(one_batch, cg);
+        std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
         osent.push_back(std::vector<unsigned int>(d.target_start_id, one_batch.src.at(0).size()));
         dynet::expr::Expression i_feed;
         for (int t = 1; t < opts.max_length; ++t) {
-            Expression i_att_t = encdec->decoder_attention(cg, osent[t-1], i_feed, i_enc);
-            std::vector<dynet::Expression> i_out_t = encdec->decoder_output(cg, i_att_t);
+            dynet::Expression i_att_t = encdec->decoder_attention(cg, osent[t-1], i_feed, i_enc[0]);
+            std::vector<dynet::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);
             i_feed = i_out_t[1];
             Expression predict = softmax(i_out_t[0]);
             std::vector<dynet::Tensor> results = cg.incremental_forward(predict).batch_elems();
