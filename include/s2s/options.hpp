@@ -140,6 +140,7 @@ private:
     void set_s2s_options(boost::program_options::options_description *bpo, s2s_options *opts) {
         namespace po = boost::program_options;
         bpo->add_options()
+        ("dynet-mem", po::value<unsigned int>()->default_value(8096), "mem")
         ("mode", po::value<std::string>(&(opts->mode))->required(), "select from 'train', 'predict' or 'test'")
         ("rootdir", po::value<std::string>(&(opts->rootdir))->required(), "source train file")
         ("srcfile", po::value<std::string>(&(opts->srcfile))->required(), "source train file")
@@ -156,7 +157,7 @@ private:
         ("att_size", po::value<unsigned int>(&(opts->att_size))->default_value(256), "batch size")
         ("shared_input", po::value<bool>(&(opts->shared_input))->default_value(false), "batch size")
         ("enc_feature_vec_size", po::value<std::string>(&(opts->enc_feature_vec_size_str))->default_value("256"), "target train file")
-        ("enc_feature_vocab_size", po::value<std::string>(&(opts->enc_feature_vocab_size_str))->default_value("256"), "target train file")
+        ("enc_feature_vocab_size", po::value<std::string>(&(opts->enc_feature_vocab_size_str))->default_value("20000"), "target train file")
         ("dec_word_vec_size", po::value<unsigned int>(&(opts->dec_word_vec_size)), "batch size")
         ("dec_word_vocab_size", po::value<unsigned int>(&(opts->dec_word_vocab_size)), "batch size")
         ("guided_alignment", po::value<bool>(&(opts->guided_alignment))->default_value(false), "batch size")
@@ -184,15 +185,11 @@ private:
         std::vector<std::string> vec_str_enc_feature_vec_size;
         boost::algorithm::split_regex(vec_str_enc_feature_vec_size, opts->enc_feature_vec_size_str, boost::regex(","));
         for(auto feature_vec_size : vec_str_enc_feature_vec_size){
-            // for debug
-            std::cerr << "F:" << __FILE__ << "\t" << "L:" << __LINE__ << "\t" << feature_vec_size << std::endl;
             opts->enc_feature_vec_size.push_back(std::stoi(feature_vec_size));
         }
         std::vector<std::string> vec_str_enc_feature_vocab_size;
         boost::algorithm::split_regex(vec_str_enc_feature_vocab_size, opts->enc_feature_vocab_size_str, boost::regex(","));
         for(auto feature_vocab_size : vec_str_enc_feature_vocab_size){
-            // for debug
-            std::cerr << "F:" << __FILE__ << "\t" << "L:" << __LINE__ << "\t" << feature_vocab_size << std::endl;
             opts->enc_feature_vocab_size.push_back(std::stoi(feature_vocab_size));
         }
         assert(opts->enc_feature_vocab_size.size() == opts->enc_feature_vec_size.size());

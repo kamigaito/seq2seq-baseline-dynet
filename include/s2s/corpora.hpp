@@ -45,10 +45,8 @@ namespace s2s {
                 source_end_id[feature_id] = d_src[feature_id].convert(opts.end_symbol);
             }
             // constuct source dictionary
-            cerr << "Reading source language training text from " << opts.srcfile << "...\n";
+            std::cerr << "Reading source language training text from " << opts.srcfile << "...\n";
             freq_cut_src(opts.srcfile, d_src, opts.unk_symbol, opts.enc_feature_vocab_size);
-        // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
             // set unknown id
             for(unsigned int feature_id = 0; feature_id < d_src.size(); feature_id++){
                 source_unk_id[feature_id] = d_src[feature_id].convert(opts.unk_symbol);
@@ -58,10 +56,8 @@ namespace s2s {
             target_start_id = d_trg.convert(opts.start_symbol);
             target_end_id = d_trg.convert(opts.end_symbol);
             // constuct target dictionary
-            cerr << "Reading target language training text from " << opts.srcfile << "...\n";
+            std::cerr << "Reading target language training text from " << opts.srcfile << "...\n";
             freq_cut_trg(opts.trgfile, d_trg, opts.unk_symbol, opts.dec_word_vocab_size);
-        // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
             // set unknown id
             for(unsigned int feature_id = 0; feature_id < d_src.size(); feature_id++){
                 source_unk_id[feature_id] = d_src[feature_id].convert(opts.unk_symbol);
@@ -76,7 +72,7 @@ namespace s2s {
             source_unk_id.resize(opts.enc_feature_vocab_size.size());
             for(unsigned int i=0; i < d_src.size(); i++){
                 std::string file_name = opts.rootdir + "/" + opts.dict_prefix + "src_" + to_string(i) + ".txt";
-                cerr << "Loading source dictionary from " << file_name << "...\n";
+                std::cerr << "Loading source dictionary from " << file_name << "...\n";
                 ifstream in(file_name);
                 boost::archive::text_iarchive ia(in);
                 ia >> d_src[i];
@@ -88,7 +84,7 @@ namespace s2s {
                 source_end_id[feature_id] = d_src[feature_id].convert(opts.end_symbol);
             }
             std::string file_name = opts.rootdir + "/" + opts.dict_prefix + "trg.txt";
-            cerr << "Loading target dictionary from " << file_name << "...\n";
+            std::cerr << "Loading target dictionary from " << file_name << "...\n";
             ifstream in(file_name);
             boost::archive::text_iarchive ia(in);
             ia >> d_trg;
@@ -245,16 +241,10 @@ namespace s2s {
             index_dev = 0;
         }
         void load(dicts &d, const s2s_options &opts){
-        // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
             load_corpus_src(opts.srcfile, d.source_start_id, d.source_end_id, d.d_src, src);
             load_corpus_src(opts.srcvalfile, d.source_start_id, d.source_end_id, d.d_src, src_val);
-        // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
             load_corpus_trg(opts.trgfile, d.target_start_id, d.target_end_id, d.d_trg, trg);
             load_corpus_trg(opts.trgvalfile, d.target_start_id, d.target_end_id, d.d_trg, trg_val);
-        // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
             if(opts.guided_alignment == true){
                 load_align_corpus(opts.alignfile, align);
                 load_align_corpus(opts.alignfile, align_val);

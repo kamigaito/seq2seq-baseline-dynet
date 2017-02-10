@@ -32,18 +32,14 @@ namespace s2s {
 
     void train(const s2s_options &opts){
         // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::dicts dicts;
         s2s::parallel_corpus para_corp;
         dicts.set(opts);
         // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
         para_corp.load(dicts, opts);
         // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
         dicts.save(opts);
         // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
         dynet::Model model;
         encoder_decoder* encdec = new encoder_decoder(model, &opts);
         dynet::Trainer* trainer = nullptr;
@@ -61,23 +57,20 @@ namespace s2s {
             std::cerr << "Trainer does not exist !"<< std::endl;
             assert(false);
         }
-        std::cerr << __FILE__ << __LINE__ << std::endl;
         unsigned int epoch = 0;
         while(epoch < opts.epochs){
             // train
             para_corp.shuffle();
             float align_w = opts.guided_alignment_weight;
             batch one_batch;
-        std::cerr << __FILE__ << __LINE__ << std::endl;
             while(para_corp.train_batch(one_batch, opts.max_batch_l, dicts)){
-        std::cerr << __FILE__ << __LINE__ << std::endl;
                 dynet::ComputationGraph cg;
                 float loss_att = 0.0;
                 float loss_out = 0.0;
                 std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
-                dynet::expr::Expression i_feed;
+                std::vector<dynet::expr::Expression> i_feed{dynet::expr::zeroes(cg, dynet::Dim({opts.rnn_size * 3}, one_batch.trg.at(0).size()))};
                 for (unsigned int t = 0; t < one_batch.trg.size() - 1; ++t) {
-                    dynet::expr::Expression i_att_t = encdec->decoder_attention(cg, one_batch.trg[t], i_feed, i_enc[0]);
+                    dynet::expr::Expression i_att_t = encdec->decoder_attention(cg, one_batch.trg[t], i_feed[t], i_enc[0]);
                     if(opts.guided_alignment == true){
                         dynet::expr::Expression i_err = sum_batches(pickneglogsoftmax(i_att_t, one_batch.align[t]));
                         loss_att += as_scalar(cg.incremental_forward(i_err));
@@ -85,13 +78,14 @@ namespace s2s {
                         trainer->update(align_w * 1.0 / double(one_batch.src.size()));
                     }
                     std::vector<dynet::expr::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);
-                    dynet::Expression i_err = sum_batches(pickneglogsoftmax(i_out_t[0], one_batch.trg[t+1]));
-                    i_feed = i_out_t[1];
-                    //cg.PrintGraphviz();
+                    i_feed.push_back(i_out_t[1]);
+                    dynet::expr::Expression i_err = sum_batches(pickneglogsoftmax(i_out_t[0], one_batch.trg[t+1]));
+                    //cg.print_graphviz();
                     loss_att += as_scalar(cg.incremental_forward(i_err));
                     cg.backward(i_err);
                     trainer->update(1.0 / double(one_batch.src.size()));
                 }
+                std::cout << loss_att << "\t" << loss_out << std::endl;
             }
             trainer->update_epoch();
             trainer->status();
@@ -152,17 +146,9 @@ int main(int argc, char** argv) {
     po::notify(vm);
     dynet::initialize(argc, argv);
     if(vm.at("mode").as<std::string>() == "train"){
-        // for debug
-        // std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::add_s2s_options_train(&vm, &opts);
-        // for debug
-        // std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::check_s2s_options_train(&vm, opts);
-        // for debug
-        // std::cerr << __FILE__ << __LINE__ << std::endl;
         std::string file_name = opts.rootdir + "/options.txt";
-        // for debug
-        // std::cerr << file_name << std::endl;
         struct stat st;
         if(stat(opts.rootdir.c_str(), &st) != 0){
             mkdir(opts.rootdir.c_str(), 0775);
@@ -171,21 +157,13 @@ int main(int argc, char** argv) {
         boost::archive::text_oarchive oa(out);
         oa << opts;
         out.close();
-        // for debug
-        // std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::train(opts);
     }else if(vm.at("mode").as<std::string>() == "predict"){
-        // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
         ifstream in(opts.rootdir + "/options.txt");
         boost::archive::text_iarchive ia(in);
         ia >> opts;
         in.close();
-        // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::check_s2s_options_predict(&vm, opts);
-        // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::predict(opts);
     }else if(vm.at("mode").as<std::string>() == "test"){
 

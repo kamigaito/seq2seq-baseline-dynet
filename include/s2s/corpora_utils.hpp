@@ -106,19 +106,11 @@ namespace s2s {
                 std::vector<std::string> features;
                 boost::algorithm::split_regex(features, tokens.at(token_id), boost::regex("-\\|-"));
                 for(unsigned int feature_id = 0; feature_id < features.size(); feature_id++){
-        // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
-        std::cerr << "sid:" << sid << "token_id:" << token_id << "\t" << "feature_id:" << feature_id << std::endl;
                     str_tokens[token_id][feature_id] = d[feature_id].convert(features[feature_id]);
-        std::cerr << __FILE__ << __LINE__ << std::endl;
                 }
             }
             corpus_src.push_back(str_tokens);
-        // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
             for(unsigned int feature_id = 0; feature_id < start.size(); feature_id++){
-        // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
                 if (corpus_src.back().at(feature_id).front() != start.at(feature_id) && corpus_src.back().at(feature_id).front() != end.at(feature_id)) {
                     cerr << "Sentence in " << file_path << ":" << tlc << " didn't start or end with <s>, </s>\n";
                     abort();
@@ -213,7 +205,9 @@ namespace s2s {
             for(unsigned int f_id = 0; f_id < vec_eos.size(); f_id++){
                 std::vector<unsigned int> feat(batch_size, vec_eos.at(f_id));
                 for(unsigned int sid = 0; sid < max_batch_size && sid + index < sents_order.size(); sid++){
-                    if(pos < vec_input.at(sid + index).size()){
+                    if(pos < vec_input.at(sents_order.at(sid + index)).size()){
+                        vec_input.at(sents_order.at(sid + index));
+                        vec_input.at(sents_order.at(sid + index)).at(pos);
                         feat[sid] = vec_input.at(sents_order.at(sid + index)).at(pos).at(f_id);
                     }
                 }
