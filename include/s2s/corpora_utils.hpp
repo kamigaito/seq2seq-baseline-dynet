@@ -30,7 +30,10 @@ namespace s2s {
             boost::algorithm::split_regex(tokens, line, boost::regex(" "));
             for(const std::string token : tokens){
                 std::vector<std::string> features;
-                boost::algorithm::split_regex(features, token, boost::regex("-|-"));
+                boost::algorithm::split_regex(features, token, boost::regex("-\\|-"));
+                if(features.size() != vec_str_freq.size()){
+                    vec_str_freq.resize(features.size());
+                }
                 for(unsigned int feature_id = 0; feature_id < features.size(); feature_id++){
                     vec_str_freq[feature_id][features.at(feature_id)]++;
                 }
@@ -89,6 +92,7 @@ namespace s2s {
     void load_corpus_src(const std::string file_path, const std::vector<unsigned int>& start, const std::vector<unsigned int>& end, std::vector<dynet::Dict>& d, std::vector<std::vector<std::vector<unsigned int> > >& corpus_src){
         ifstream in(file_path);
         assert(in);
+        int sid = 0;
         int tlc = 0;
         int ttoks = 0;
         std::string line;
@@ -100,18 +104,27 @@ namespace s2s {
             ttoks += tokens.size();
             for(unsigned int token_id = 0; token_id < tokens.size(); token_id++) {
                 std::vector<std::string> features;
-                boost::algorithm::split_regex(features, tokens.at(token_id), boost::regex("-|-"));
+                boost::algorithm::split_regex(features, tokens.at(token_id), boost::regex("-\\|-"));
                 for(unsigned int feature_id = 0; feature_id < features.size(); feature_id++){
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
+        std::cerr << "sid:" << sid << "token_id:" << token_id << "\t" << "feature_id:" << feature_id << std::endl;
                     str_tokens[token_id][feature_id] = d[feature_id].convert(features[feature_id]);
+        std::cerr << __FILE__ << __LINE__ << std::endl;
                 }
             }
             corpus_src.push_back(str_tokens);
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
             for(unsigned int feature_id = 0; feature_id < start.size(); feature_id++){
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
                 if (corpus_src.back().at(feature_id).front() != start.at(feature_id) && corpus_src.back().at(feature_id).front() != end.at(feature_id)) {
                     cerr << "Sentence in " << file_path << ":" << tlc << " didn't start or end with <s>, </s>\n";
                     abort();
                 }
             }
+            sid++;
         }
         in.close();
         cerr << tlc << " lines, " << ttoks << " tokens, " << d.at(0).size() << " types\n";

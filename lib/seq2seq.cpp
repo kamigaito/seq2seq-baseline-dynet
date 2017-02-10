@@ -9,6 +9,8 @@
 #include "dynet/dict.h"
 #include "dynet/expr.h"
 
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -34,8 +36,14 @@ namespace s2s {
         s2s::dicts dicts;
         s2s::parallel_corpus para_corp;
         dicts.set(opts);
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         para_corp.load(dicts, opts);
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         dicts.save(opts);
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         dynet::Model model;
         encoder_decoder* encdec = new encoder_decoder(model, &opts);
         dynet::Trainer* trainer = nullptr;
@@ -53,13 +61,16 @@ namespace s2s {
             std::cerr << "Trainer does not exist !"<< std::endl;
             assert(false);
         }
+        std::cerr << __FILE__ << __LINE__ << std::endl;
         unsigned int epoch = 0;
         while(epoch < opts.epochs){
             // train
             para_corp.shuffle();
             float align_w = opts.guided_alignment_weight;
             batch one_batch;
+        std::cerr << __FILE__ << __LINE__ << std::endl;
             while(para_corp.train_batch(one_batch, opts.max_batch_l, dicts)){
+        std::cerr << __FILE__ << __LINE__ << std::endl;
                 dynet::ComputationGraph cg;
                 float loss_att = 0.0;
                 float loss_out = 0.0;
@@ -142,19 +153,26 @@ int main(int argc, char** argv) {
     dynet::initialize(argc, argv);
     if(vm.at("mode").as<std::string>() == "train"){
         // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
+        // std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::add_s2s_options_train(&vm, &opts);
         // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
+        // std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::check_s2s_options_train(&vm, opts);
         // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
-        ofstream out(opts.rootdir + "/options.txt");
+        // std::cerr << __FILE__ << __LINE__ << std::endl;
+        std::string file_name = opts.rootdir + "/options.txt";
+        // for debug
+        // std::cerr << file_name << std::endl;
+        struct stat st;
+        if(stat(opts.rootdir.c_str(), &st) != 0){
+            mkdir(opts.rootdir.c_str(), 0775);
+        }
+        ofstream out(file_name);
         boost::archive::text_oarchive oa(out);
         oa << opts;
         out.close();
         // for debug
-        std::cerr << __FILE__ << __LINE__ << std::endl;
+        // std::cerr << __FILE__ << __LINE__ << std::endl;
         s2s::train(opts);
     }else if(vm.at("mode").as<std::string>() == "predict"){
         // for debug

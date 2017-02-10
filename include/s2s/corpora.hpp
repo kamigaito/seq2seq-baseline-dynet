@@ -47,6 +47,8 @@ namespace s2s {
             // constuct source dictionary
             cerr << "Reading source language training text from " << opts.srcfile << "...\n";
             freq_cut_src(opts.srcfile, d_src, opts.unk_symbol, opts.enc_feature_vocab_size);
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
             // set unknown id
             for(unsigned int feature_id = 0; feature_id < d_src.size(); feature_id++){
                 source_unk_id[feature_id] = d_src[feature_id].convert(opts.unk_symbol);
@@ -58,6 +60,8 @@ namespace s2s {
             // constuct target dictionary
             cerr << "Reading target language training text from " << opts.srcfile << "...\n";
             freq_cut_trg(opts.trgfile, d_trg, opts.unk_symbol, opts.dec_word_vocab_size);
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
             // set unknown id
             for(unsigned int feature_id = 0; feature_id < d_src.size(); feature_id++){
                 source_unk_id[feature_id] = d_src[feature_id].convert(opts.unk_symbol);
@@ -241,10 +245,16 @@ namespace s2s {
             index_dev = 0;
         }
         void load(dicts &d, const s2s_options &opts){
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
             load_corpus_src(opts.srcfile, d.source_start_id, d.source_end_id, d.d_src, src);
             load_corpus_src(opts.srcvalfile, d.source_start_id, d.source_end_id, d.d_src, src_val);
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
             load_corpus_trg(opts.trgfile, d.target_start_id, d.target_end_id, d.d_trg, trg);
             load_corpus_trg(opts.trgvalfile, d.target_start_id, d.target_end_id, d.d_trg, trg_val);
+        // for debug
+        std::cerr << __FILE__ << __LINE__ << std::endl;
             if(opts.guided_alignment == true){
                 load_align_corpus(opts.alignfile, align);
                 load_align_corpus(opts.alignfile, align_val);
