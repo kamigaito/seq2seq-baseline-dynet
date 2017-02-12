@@ -26,19 +26,21 @@
 
 namespace s2s {
 
-    void greedy_decode(const batch& one_batch, std::vector<std::vector<unsigned int > >& osent, encoder_decoder *encdec, dynet::ComputationGraph &cg, dicts &d, const s2s_options &opts){
+    void greedy_decode(const batch& one_batch, std::vector<std::vector<unsigned int > >& osent, encoder_decoder *encdec, dicts &d, const s2s_options &opts){
         //unsigned slen = sents.size();
+        dynet::ComputationGraph cg;
+std::cerr << "batch_size : " <<one_batch.src.at(0).size() << std::endl;
+        osent.push_back(std::vector<unsigned int>(one_batch.src.at(0).at(0).size(), d.target_start_id));
         std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
-        osent.push_back(std::vector<unsigned int>(d.target_start_id, one_batch.src.at(0).size()));
-        dynet::expr::Expression i_feed;
-        for (int t = 1; t < opts.max_length; ++t) {
-            dynet::Expression i_att_t = encdec->decoder_attention(cg, osent[t-1], i_feed, i_enc[0]);
-            std::vector<dynet::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);
-            i_feed = i_out_t[1];
+        std::vector<dynet::expr::Expression> i_feed{dynet::expr::zeroes(cg, dynet::Dim({opts.rnn_size * 3}, one_batch.src.at(0).at(0).size()))};
+        for (int t = 0; t < opts.max_length; ++t) {
+            dynet::expr::Expression i_att_t = encdec->decoder_attention(cg, osent[t], i_feed[t], i_enc[0]);
+            std::vector<dynet::expr::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);
+            i_feed.push_back(i_out_t[1]);
             Expression predict = softmax(i_out_t[0]);
             std::vector<dynet::Tensor> results = cg.incremental_forward(predict).batch_elems();
             std::vector<unsigned int> osent_col;
-            for(unsigned int i=0; results.size(); i++){
+            for(unsigned int i = 0; i < results.size(); i++){
                 auto output = as_vector(results.at(i));
                 int w_id = 0;
                 double w_prob = output[w_id];
@@ -58,14 +60,20 @@ namespace s2s {
     }
 
     std::string print_sents(std::vector<std::vector<unsigned int > >& osent, dicts& d){
+std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
         std::string sents = "";
         std::vector<std::vector<unsigned int> > sents_conved;
-        sents_conved.resize(osent.size());
+        sents_conved.resize(osent.at(0).size());
+std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
         for(unsigned int col_id = 0; col_id < osent.size(); col_id++){
-            for(unsigned int sid = 0; osent.at(col_id).size(); sid++){
+std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
+            for(unsigned int sid = 0; sid < osent.at(col_id).size(); sid++){
+std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
+std::cerr << "sid: " << sid << "col_id " << col_id << std::endl;
                 sents_conved[sid].push_back(osent.at(col_id).at(sid));
             }
         }
+std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
         for(const auto sent : sents_conved){
             for(const auto wid : sent){
                 std::string word = d.d_trg.convert(wid);
@@ -77,6 +85,7 @@ namespace s2s {
             }
             sents += "\n";
         }
+std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
         return sents;
     }
 

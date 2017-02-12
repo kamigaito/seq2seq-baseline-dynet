@@ -31,12 +31,22 @@
 namespace s2s {
 
     void train(const s2s_options &opts){
-        // for debug
         s2s::dicts dicts;
-        s2s::parallel_corpus para_corp;
+        s2s::parallel_corpus para_corp_train;
+        s2s::parallel_corpus para_corp_dev;
         dicts.set(opts);
-        // for debug
-        para_corp.load(dicts, opts);
+        para_corp_train.load_src(opts.srcfile, dicts);
+        para_corp_train.load_trg(opts.trgfile, dicts);
+        para_corp_train.load_check();
+        para_corp_dev.load_src(opts.srcvalfile, dicts);
+        para_corp_dev.load_trg(opts.trgvalfile, dicts);
+        para_corp_dev.load_check();
+        if(opts.guided_alignment == true){
+            para_corp_train.load_align(opts.alignfile);
+            para_corp_train.load_check_with_align();
+            para_corp_dev.load_align(opts.alignvalfile);
+            para_corp_dev.load_check_with_align();
+        }
         // for debug
         dicts.save(opts);
         // for debug
@@ -59,11 +69,13 @@ namespace s2s {
         }
         unsigned int epoch = 0;
         while(epoch < opts.epochs){
+std::cerr << epoch << "/" << opts.epochs << std::endl;
+std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
             // train
-            para_corp.shuffle();
+            para_corp_train.shuffle();
             float align_w = opts.guided_alignment_weight;
             batch one_batch;
-            while(para_corp.train_batch(one_batch, opts.max_batch_l, dicts)){
+            while(para_corp_train.next_batch_para(one_batch, opts.max_batch_l, dicts)){
                 dynet::ComputationGraph cg;
                 float loss_att = 0.0;
                 float loss_out = 0.0;
@@ -89,18 +101,21 @@ namespace s2s {
             }
             trainer->update_epoch();
             trainer->status();
+            std::cerr << std::endl;
             align_w *= opts.guided_alignment_decay;
+            para_corp_train.reset_index();
             epoch++;
             // dev
+            std::cerr << "dev" << std::endl;
             encdec->disable_dropout();
             ofstream dev_sents(opts.rootdir + "/dev_" + to_string(epoch) + ".txt");
-            while(para_corp.dev_batch(one_batch, opts.max_batch_l, dicts)){
-                dynet::ComputationGraph cg;
+            while(para_corp_dev.next_batch_para(one_batch, opts.max_batch_l, dicts)){
                 std::vector<std::vector<unsigned int> > osent;
-                s2s::greedy_decode(one_batch, osent, encdec, cg, dicts, opts);
+                s2s::greedy_decode(one_batch, osent, encdec, dicts, opts);
                 dev_sents << s2s::print_sents(osent, dicts);
             }
             dev_sents.close();
+            para_corp_dev.reset_index();
             encdec->set_dropout(opts.dropout);
             // save Model
             ofstream model_out(opts.rootdir + "/" + opts.save_file + "_" + to_string(epoch) + ".model");
@@ -122,13 +137,13 @@ namespace s2s {
         model_in.close();
         encdec->disable_dropout();
         // predict
-        s2s::parallel_corpus para_corp;
+        s2s::monoling_corpus mono_corp;
+        mono_corp.load_src(opts.srcfile, dicts);
         batch one_batch;
         ofstream predict_sents(opts.rootdir + "/predict.txt");
-        while(para_corp.dev_batch(one_batch, opts.max_batch_l, dicts)){
-            dynet::ComputationGraph cg;
+        while(mono_corp.next_batch_mono(one_batch, opts.max_batch_l, dicts)){
             std::vector<std::vector<unsigned int> > osent;
-            s2s::greedy_decode(one_batch, osent, encdec, cg, dicts, opts);
+            s2s::greedy_decode(one_batch, osent, encdec, dicts, opts);
             predict_sents << s2s::print_sents(osent, dicts);
         }
         predict_sents.close();
@@ -144,7 +159,6 @@ int main(int argc, char** argv) {
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, bpo), vm);
     po::notify(vm);
-    dynet::initialize(argc, argv);
     if(vm.at("mode").as<std::string>() == "train"){
         s2s::add_s2s_options_train(&vm, &opts);
         s2s::check_s2s_options_train(&vm, opts);
@@ -157,6 +171,7 @@ int main(int argc, char** argv) {
         boost::archive::text_oarchive oa(out);
         oa << opts;
         out.close();
+        dynet::initialize(argc, argv);
         s2s::train(opts);
     }else if(vm.at("mode").as<std::string>() == "predict"){
         ifstream in(opts.rootdir + "/options.txt");
@@ -164,6 +179,7 @@ int main(int argc, char** argv) {
         ia >> opts;
         in.close();
         s2s::check_s2s_options_predict(&vm, opts);
+        dynet::initialize(argc, argv);
         s2s::predict(opts);
     }else if(vm.at("mode").as<std::string>() == "test"){
 

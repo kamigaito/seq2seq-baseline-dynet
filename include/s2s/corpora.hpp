@@ -56,7 +56,7 @@ namespace s2s {
             target_start_id = d_trg.convert(opts.start_symbol);
             target_end_id = d_trg.convert(opts.end_symbol);
             // constuct target dictionary
-            std::cerr << "Reading target language training text from " << opts.srcfile << "...\n";
+            std::cerr << "Reading target language training text from " << opts.trgfile << "...\n";
             freq_cut_trg(opts.trgfile, d_trg, opts.unk_symbol, opts.dec_word_vocab_size);
             // set unknown id
             for(unsigned int feature_id = 0; feature_id < d_src.size(); feature_id++){
@@ -144,158 +144,78 @@ namespace s2s {
     };
 
     class monoling_corpus {
+
         public:
     
         std::vector<std::vector<std::vector<unsigned int> > > src;
-        std::vector<std::vector<unsigned int> > trg;
-        std::vector<std::vector<unsigned int> > align;
-        std::vector<std::vector<std::vector<unsigned int> > > src_val;
-        std::vector<std::vector<unsigned int> > trg_val;
-        std::vector<std::vector<unsigned int> > align_val;
-        unsigned int index_train;
-        unsigned int index_dev;
+        unsigned int index;
         std::vector<unsigned int> sents_order;
-        std::vector<unsigned int> sents_dev_order;
+
         monoling_corpus(){
-            index_train = 0;
-            index_dev = 0;
+            index = 0;
         }
-        void load(dicts &d, const s2s_options &opts){
-            load_corpus_src(opts.srcfile, d.source_start_id, d.source_end_id, d.d_src, src);
-            load_corpus_src(opts.srcvalfile, d.source_start_id, d.source_end_id, d.d_src, src_val);
-            load_corpus_trg(opts.trgfile, d.target_start_id, d.target_end_id, d.d_trg, trg);
-            load_corpus_trg(opts.trgvalfile, d.target_start_id, d.target_end_id, d.d_trg, trg_val);
-            if(opts.guided_alignment == true){
-                load_align_corpus(opts.alignfile, align);
-                load_align_corpus(opts.alignfile, align_val);
-                // check
-                for(unsigned int sid = 0; sid < trg.size(); sid++){
-                    if(trg.at(sid).size() != align.at(sid).size()){
-                        cerr << "train corpus: sentence size does not match! \n";
-                        assert(false);
-                    }
-                    for(const unsigned int tok : trg.at(sid)){
-                        if(tok < 0 || src.at(sid).size() <= tok){
-                            cerr << "train corpus: wrong alignment! \n";
-                            assert(false);
-                        }
-                    }
-                }
-                for(unsigned int sid = 0; sid < trg_val.size(); sid++){
-                    if(trg_val.at(sid).size() != align_val.at(sid).size()){
-                        cerr << "dev corpus: sentence size does not match! \n";
-                        assert(false);
-                    }
-                    for(const unsigned int tok : trg_val.at(sid)){
-                        if(tok < 0 || src_val.at(sid).size() <= tok){
-                            cerr << "dev corpus: wrong alignment! \n";
-                            assert(false);
-                        }
-                    }
-                }
-            }
+
+        void load_src(const std::string srcfile, dicts &d){
+            load_corpus_src(srcfile, d.source_start_id, d.source_end_id, d.d_src, src);
             sents_order.resize(src.size());
             std::iota(sents_order.begin(), sents_order.end(), 0);
-            sents_dev_order.resize(src_val.size());
-            std::iota(sents_dev_order.begin(), sents_dev_order.end(), 0);
         }
-        void shuffle(){
-            srand(unsigned(time(NULL)));
-            std::random_shuffle(sents_order.begin(),sents_order.end());
-            index_train = 0;
-        }
-        bool train_batch(batch& batch_local, const unsigned int batch_size, dicts &d){
-            batch_local.set(sents_order, index_train, batch_size, src, trg, align, d);
-            if(index_train < src.size()){
-                index_train += batch_local.trg.at(0).size();
+
+        bool next_batch_mono(batch& batch_local, const unsigned int batch_size, dicts &d){
+            batch_local.set(sents_order, index, batch_size, src, d);
+            if(index < src.size()){
+                index += batch_local.src.at(0).size();
                 return true;
             }
             return false;
         }
-        bool dev_batch(batch& batch_local, const unsigned int batch_size, dicts &d){
-            batch_local.set(sents_dev_order, index_train, batch_size, src_val, trg_val, align_val, d);
-            index_dev += batch_local.trg.at(0).size();
-            if(index_dev < src_val.size()){
-                return true;
-            }
-            return false;
+        void reset_index(){
+            index = 0;
         }
     };
 
-    class parallel_corpus {
+    class parallel_corpus : public monoling_corpus {
 
         public:
     
-        std::vector<std::vector<std::vector<unsigned int> > > src;
         std::vector<std::vector<unsigned int> > trg;
         std::vector<std::vector<unsigned int> > align;
-        std::vector<std::vector<std::vector<unsigned int> > > src_val;
-        std::vector<std::vector<unsigned int> > trg_val;
-        std::vector<std::vector<unsigned int> > align_val;
-        unsigned int index_train;
-        unsigned int index_dev;
-        std::vector<unsigned int> sents_order;
-        std::vector<unsigned int> sents_dev_order;
-        parallel_corpus(){
-            index_train = 0;
-            index_dev = 0;
+
+        parallel_corpus() : monoling_corpus() {}
+
+        void load_trg(const std::string trgfile, dicts &d){
+            load_corpus_trg(trgfile, d.target_start_id, d.target_end_id, d.d_trg, trg);
         }
-        void load(dicts &d, const s2s_options &opts){
-            load_corpus_src(opts.srcfile, d.source_start_id, d.source_end_id, d.d_src, src);
-            load_corpus_src(opts.srcvalfile, d.source_start_id, d.source_end_id, d.d_src, src_val);
-            load_corpus_trg(opts.trgfile, d.target_start_id, d.target_end_id, d.d_trg, trg);
-            load_corpus_trg(opts.trgvalfile, d.target_start_id, d.target_end_id, d.d_trg, trg_val);
-            if(opts.guided_alignment == true){
-                load_align_corpus(opts.alignfile, align);
-                load_align_corpus(opts.alignfile, align_val);
-                // check
-                for(unsigned int sid = 0; sid < trg.size(); sid++){
-                    if(trg.at(sid).size() != align.at(sid).size()){
-                        cerr << "train corpus: sentence size does not match! \n";
-                        assert(false);
-                    }
-                    for(const unsigned int tok : trg.at(sid)){
-                        if(tok < 0 || src.at(sid).size() <= tok){
-                            cerr << "train corpus: wrong alignment! \n";
-                            assert(false);
-                        }
-                    }
-                }
-                for(unsigned int sid = 0; sid < trg_val.size(); sid++){
-                    if(trg_val.at(sid).size() != align_val.at(sid).size()){
-                        cerr << "dev corpus: sentence size does not match! \n";
-                        assert(false);
-                    }
-                    for(const unsigned int tok : trg_val.at(sid)){
-                        if(tok < 0 || src_val.at(sid).size() <= tok){
-                            cerr << "dev corpus: wrong alignment! \n";
-                            assert(false);
-                        }
-                    }
+
+        void load_align(const std::string alignfile){
+            load_align_corpus(alignfile, align);
+        }
+
+        void load_check(){
+            // check
+            assert(src.size() == trg.size()); // sentence size does not match!
+        }
+
+        void load_check_with_align(){
+            assert(src.size() == trg.size() && trg.size() == align.size()); // sentence size does not match!
+            // check
+            for(unsigned int sid = 0; sid < trg.size(); sid++){
+                assert(trg.at(sid).size() == align.at(sid).size()); // alignment size
+                for(const unsigned int tok : align.at(sid)){
+                    assert(0 <= tok && tok < src.at(sid).size()); // alignment range
                 }
             }
-            sents_order.resize(src.size());
-            std::iota(sents_order.begin(), sents_order.end(), 0);
-            sents_dev_order.resize(src_val.size());
-            std::iota(sents_dev_order.begin(), sents_dev_order.end(), 0);
         }
+
         void shuffle(){
             srand(unsigned(time(NULL)));
             std::random_shuffle(sents_order.begin(),sents_order.end());
-            index_train = 0;
         }
-        bool train_batch(batch& batch_local, const unsigned int batch_size, dicts &d){
-            batch_local.set(sents_order, index_train, batch_size, src, trg, align, d);
-            if(index_train < src.size()){
-                index_train += batch_local.trg.at(0).size();
-                return true;
-            }
-            return false;
-        }
-        bool dev_batch(batch& batch_local, const unsigned int batch_size, dicts &d){
-            batch_local.set(sents_dev_order, index_train, batch_size, src_val, trg_val, align_val, d);
-            index_dev += batch_local.trg.at(0).size();
-            if(index_dev < src_val.size()){
+
+        bool next_batch_para(batch& batch_local, const unsigned int batch_size, dicts &d){
+            batch_local.set(sents_order, index, batch_size, src, trg, align, d);
+            if(index < src.size()){
+                index += batch_local.trg.at(0).size();
                 return true;
             }
             return false;

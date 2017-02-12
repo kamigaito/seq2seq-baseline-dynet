@@ -93,7 +93,7 @@ namespace s2s {
             dropout = 0.3;
             lr_decay = 1.0;
             max_batch_l = 32;
-            max_length =500;
+            max_length = 300;
             start_symbol = "<s>";
             end_symbol = "</s>";
             unk_symbol = "<unk>";
@@ -165,14 +165,14 @@ private:
         ("guided_alignment_decay", po::value<float>(&(opts->guided_alignment_decay))->default_value(1.0), "batch size")
         ("guided_output_weight", po::value<float>(&(opts->guided_output_weight))->default_value(1.0), "batch size")
         ("guided_output_decay", po::value<float>(&(opts->guided_output_decay))->default_value(1.0), "batch size")
-        ("epochs", po::value<unsigned int>(&(opts->epochs))->default_value(15), "batch size")
-        ("start_epochs", po::value<unsigned int>(&(opts->epochs))->default_value(1), "batch size")
+        ("epochs", po::value<unsigned int>(&(opts->epochs))->default_value(20), "batch size")
+        ("start_epochs", po::value<unsigned int>(&(opts->start_epochs))->default_value(1), "batch size")
         ("optim", po::value<std::string>(&(opts->optim))->default_value("sgd"), "source train file")
         ("learning_rate", po::value<float>(&(opts->learning_rate))->default_value(1.0), "batch size")
         ("dropout", po::value<float>(&(opts->dropout))->default_value(0.3), "batch size")
         ("lr_decay", po::value<float>(&(opts->lr_decay))->default_value(1.0), "batch size")
         ("max_batch_l", po::value<unsigned int>(&(opts->max_batch_l))->default_value(32), "batch size")
-        ("max_length", po::value<unsigned int>(&(opts->max_length))->default_value(400), "batch size")
+        ("max_length", po::value<unsigned int>(&(opts->max_length))->default_value(300), "batch size")
         ("start_symbol", po::value<std::string>(&(opts->start_symbol))->default_value("<s>"), "source train file")
         ("end_symbol", po::value<std::string>(&(opts->end_symbol))->default_value("</s>"), "source train file")
         ("unk_symbol", po::value<std::string>(&(opts->unk_symbol))->default_value("<unk>"), "source train file")

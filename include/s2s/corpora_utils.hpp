@@ -112,7 +112,7 @@ namespace s2s {
             corpus_src.push_back(str_tokens);
             for(unsigned int feature_id = 0; feature_id < start.size(); feature_id++){
                 if (corpus_src.back().at(feature_id).front() != start.at(feature_id) && corpus_src.back().at(feature_id).front() != end.at(feature_id)) {
-                    cerr << "Sentence in " << file_path << ":" << tlc << " didn't start or end with <s>, </s>\n";
+                    std::cerr << "Sentence in " << file_path << ":" << tlc << " didn't start or end with <s>, </s>\n";
                     abort();
                 }
             }
@@ -139,7 +139,7 @@ namespace s2s {
             corpus_trg.push_back(words);
             ttoks += tokens.size();
             if (corpus_trg.back().front() != start && corpus_trg.back().back() != end) {
-                cerr << "Sentence in " << file_path << ":" << tlc << " didn't start or end with <s>, </s>\n";
+                std::cerr << "Sentence in " << file_path << ":" << tlc << " didn't start or end with <s>, </s>\n";
                 abort();
             }
         }

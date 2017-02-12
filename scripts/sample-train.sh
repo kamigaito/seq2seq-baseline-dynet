@@ -7,5 +7,10 @@
 --srcvalfile ./sample/srcval.ja \
 --trgvalfile ./sample/trgval.en \
 --optim sgd \
---max_batch_l 8 \
---dynet-mem 8096
+--max_batch_l 64 \
+--max_length 40 \
+--epochs 20 \
+--dec_word_vocab_size 61 \
+--num_layers 1 \
+--rnn_size 64 \
+--dynet-mem 11000
