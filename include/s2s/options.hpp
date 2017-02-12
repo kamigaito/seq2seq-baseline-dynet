@@ -166,7 +166,7 @@ private:
         ("guided_output_weight", po::value<float>(&(opts->guided_output_weight))->default_value(1.0), "batch size")
         ("guided_output_decay", po::value<float>(&(opts->guided_output_decay))->default_value(1.0), "batch size")
         ("epochs", po::value<unsigned int>(&(opts->epochs))->default_value(20), "batch size")
-        ("start_epochs", po::value<unsigned int>(&(opts->start_epochs))->default_value(1), "batch size")
+        ("start_epoch", po::value<unsigned int>(&(opts->start_epoch))->default_value(1), "batch size")
         ("optim", po::value<std::string>(&(opts->optim))->default_value("sgd"), "source train file")
         ("learning_rate", po::value<float>(&(opts->learning_rate))->default_value(1.0), "batch size")
         ("dropout", po::value<float>(&(opts->dropout))->default_value(0.3), "batch size")
