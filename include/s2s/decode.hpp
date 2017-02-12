@@ -29,7 +29,6 @@ namespace s2s {
     void greedy_decode(const batch& one_batch, std::vector<std::vector<unsigned int > >& osent, encoder_decoder *encdec, dicts &d, const s2s_options &opts){
         //unsigned slen = sents.size();
         dynet::ComputationGraph cg;
-std::cerr << "batch_size : " <<one_batch.src.at(0).size() << std::endl;
         osent.push_back(std::vector<unsigned int>(one_batch.src.at(0).at(0).size(), d.target_start_id));
         std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
         std::vector<dynet::expr::Expression> i_feed{dynet::expr::zeroes(cg, dynet::Dim({opts.rnn_size * 3}, one_batch.src.at(0).at(0).size()))};
@@ -60,20 +59,14 @@ std::cerr << "batch_size : " <<one_batch.src.at(0).size() << std::endl;
     }
 
     std::string print_sents(std::vector<std::vector<unsigned int > >& osent, dicts& d){
-std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
         std::string sents = "";
         std::vector<std::vector<unsigned int> > sents_conved;
         sents_conved.resize(osent.at(0).size());
-std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
         for(unsigned int col_id = 0; col_id < osent.size(); col_id++){
-std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
             for(unsigned int sid = 0; sid < osent.at(col_id).size(); sid++){
-std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
-std::cerr << "sid: " << sid << "col_id " << col_id << std::endl;
                 sents_conved[sid].push_back(osent.at(col_id).at(sid));
             }
         }
-std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
         for(const auto sent : sents_conved){
             for(const auto wid : sent){
                 std::string word = d.d_trg.convert(wid);
@@ -85,7 +78,6 @@ std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
             }
             sents += "\n";
         }
-std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
         return sents;
     }
 
