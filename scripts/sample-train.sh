@@ -6,11 +6,13 @@
 --trgfile ./sample/trg.en \
 --srcvalfile ./sample/srcval.ja \
 --trgvalfile ./sample/trgval.en \
---optim sgd \
---max_batch_l 64 \
---max_length 40 \
+--optim adam \
+--max_batch_l 8 \
+--max_length 300 \
 --epochs 20 \
---dec_word_vocab_size 61 \
+--enc_feature_vocab_size 5000 \
+--dec_word_vocab_size 5000 \
 --num_layers 1 \
---rnn_size 64 \
+--rnn_size 128 \
+--att_size 128 \
 --dynet-mem 11000

@@ -164,7 +164,7 @@ namespace s2s {
         bool next_batch_mono(batch& batch_local, const unsigned int batch_size, dicts &d){
             batch_local.set(sents_order, index, batch_size, src, d);
             if(index < src.size()){
-                index += batch_local.src.at(0).size();
+                index += batch_local.src.at(0).at(0).size();
                 return true;
             }
             return false;

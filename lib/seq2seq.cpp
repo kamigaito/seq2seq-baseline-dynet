@@ -69,8 +69,6 @@ namespace s2s {
         }
         unsigned int epoch = 0;
         while(epoch < opts.epochs){
-std::cerr << epoch << "/" << opts.epochs << std::endl;
-std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
             // train
             para_corp_train.shuffle();
             float align_w = opts.guided_alignment_weight;
@@ -140,7 +138,7 @@ std::cerr << "__FILE__ " << __FILE__ << "__LINE__ " << __LINE__ << std::endl;
         s2s::monoling_corpus mono_corp;
         mono_corp.load_src(opts.srcfile, dicts);
         batch one_batch;
-        ofstream predict_sents(opts.rootdir + "/predict.txt");
+        ofstream predict_sents(opts.trgfile);
         while(mono_corp.next_batch_mono(one_batch, opts.max_batch_l, dicts)){
             std::vector<std::vector<unsigned int> > osent;
             s2s::greedy_decode(one_batch, osent, encdec, dicts, opts);
