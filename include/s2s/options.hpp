@@ -44,6 +44,7 @@ namespace s2s {
         float guided_alignment_decay;
         float guided_output_weight;
         float guided_output_decay;
+        bool dec_feed_hidden;
         unsigned int epochs;
         unsigned int start_epoch;
         std::string optim;
@@ -86,6 +87,7 @@ namespace s2s {
             guided_alignment_decay = 0.9;
             guided_output_weight = 1.0;
             guided_output_decay = 1.0;
+            dec_feed_hidden = false;
             epochs = 20;
             start_epoch = 1;
             optim = "sgd";
@@ -120,6 +122,7 @@ private:
             ar & guided_alignment_decay;
             ar & guided_output_weight;
             ar & guided_output_decay;
+            ar & dec_feed_hidden;
             ar & epochs;
             ar & start_epoch;
             ar & optim;
@@ -165,6 +168,7 @@ private:
         ("guided_alignment_decay", po::value<float>(&(opts->guided_alignment_decay))->default_value(1.0), "batch size")
         ("guided_output_weight", po::value<float>(&(opts->guided_output_weight))->default_value(1.0), "batch size")
         ("guided_output_decay", po::value<float>(&(opts->guided_output_decay))->default_value(1.0), "batch size")
+        ("dec_feed_hidden", po::value<bool>(&(opts->dec_feed_hidden))->default_value(false), "batch size")
         ("epochs", po::value<unsigned int>(&(opts->epochs))->default_value(20), "batch size")
         ("start_epoch", po::value<unsigned int>(&(opts->start_epoch))->default_value(1), "batch size")
         ("optim", po::value<std::string>(&(opts->optim))->default_value("sgd"), "source train file")
