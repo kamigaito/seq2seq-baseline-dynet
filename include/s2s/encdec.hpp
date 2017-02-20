@@ -217,13 +217,17 @@ public:
     }
 
     dynet::expr::Expression decoder_attention(dynet::ComputationGraph& cg, const std::vector<unsigned int> prev, const dynet::expr::Expression i_feed, const dynet::expr::Expression i_Uahj){
+        return decoder_attention(cg, prev, i_feed, i_Uahj, dec_builder.state());
+    }
+
+    dynet::expr::Expression decoder_attention(dynet::ComputationGraph& cg, const std::vector<unsigned int> prev, const dynet::expr::Expression i_feed, const dynet::expr::Expression i_Uahj, const dynet::RNNPointer pointer_prev){
 
         dynet::expr::Expression i_x_t = lookup(cg, p_word_dec, prev);
         dynet::expr::Expression i_va = parameter(cg, p_va);
         dynet::expr::Expression i_Wa = parameter(cg, p_Wa);
         
         dynet::expr::Expression input = concatenate(std::vector<dynet::expr::Expression>({i_x_t, i_feed}));
-        dec_builder.add_input(input);
+        dec_builder.add_input(pointer_prev, input);
         dynet::expr::Expression i_h = concatenate(dec_builder.final_h());
         dynet::expr::Expression i_wah = i_Wa * i_h;
         dynet::expr::Expression i_Wah = concatenate_cols(std::vector<dynet::expr::Expression>(slen, i_wah));
