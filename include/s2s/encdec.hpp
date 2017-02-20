@@ -42,9 +42,18 @@ public:
     dynet::LSTMBuilder dec_builder;
     dynet::LSTMBuilder rev_enc_builder;
     dynet::LSTMBuilder fwd_enc_builder;
+    bool rev_enc;
+    bool bi_enc;
+    bool dec_feed_hidden;
+    unsigned int dec_feeding_size;
+
     unsigned int slen;
 
     explicit encoder_decoder(dynet::Model& model, const s2s_options* opts) {
+    
+        rev_enc = opts->rev_enc;
+        bi_enc = opts->bi_enc;
+        dec_feed_hidden = opts->dec_feed_hidden;
 
         unsigned int num_layers = opts->num_layers;
         unsigned int rnn_size = opts->rnn_size;
@@ -69,27 +78,61 @@ public:
         }
 
         p_word_dec = model.add_lookup_parameters(opts->dec_word_vocab_size, {opts->dec_word_vec_size}); 
-        p_out_R = model.add_parameters({opts->dec_word_vocab_size, opts->rnn_size * 3});
+        if(dec_feed_hidden){
+            if(bi_enc){
+                dec_feeding_size = opts->rnn_size * 3;
+            }else{
+                dec_feeding_size = opts->rnn_size * 2;
+            }
+        }else{
+            if(bi_enc){
+                dec_feeding_size = opts->rnn_size * 2;
+            }else{
+                dec_feeding_size = opts->rnn_size * 1;
+            }
+        }
+        p_out_R = model.add_parameters({opts->dec_word_vocab_size, dec_feeding_size});
         p_out_bias = model.add_parameters({opts->dec_word_vocab_size});
         p_Wa = model.add_parameters({opts->att_size, unsigned(opts->rnn_size * opts->num_layers)});
-        p_Ua = model.add_parameters({opts->att_size, unsigned(opts->rnn_size * 2)});
+        if(bi_enc){
+            p_Ua = model.add_parameters({opts->att_size, unsigned(opts->rnn_size * 2)});
+        }else{
+            p_Ua = model.add_parameters({opts->att_size, unsigned(opts->rnn_size * 1)});
+        }
         p_va = model.add_parameters({opts->att_size});
-
-        rev_enc_builder = dynet::LSTMBuilder(
-            num_layers,
-            enc_input_size,
-            rnn_size,
-            model
-        );
-        fwd_enc_builder = dynet::LSTMBuilder(
-            num_layers,
-            enc_input_size,
-            rnn_size,
-            model
-        );
+        if(bi_enc){
+            rev_enc_builder = dynet::LSTMBuilder(
+                num_layers,
+                enc_input_size,
+                rnn_size,
+                model
+            );
+            fwd_enc_builder = dynet::LSTMBuilder(
+                num_layers,
+                enc_input_size,
+                rnn_size,
+                model
+            );
+        }else{
+            if(rev_enc){
+                rev_enc_builder = dynet::LSTMBuilder(
+                    num_layers,
+                    enc_input_size,
+                    rnn_size,
+                    model
+                );
+            }else{
+                fwd_enc_builder = dynet::LSTMBuilder(
+                    num_layers,
+                    enc_input_size,
+                    rnn_size,
+                    model
+                );
+            }
+        }
         dec_builder = dynet::LSTMBuilder(
             num_layers,
-            (opts->rnn_size * 3 + opts->dec_word_vec_size),
+            (dec_feeding_size + opts->dec_word_vec_size),
             rnn_size,
             model
         );
@@ -97,49 +140,68 @@ public:
 
     std::vector<dynet::expr::Expression> encoder(const batch &one_batch, dynet::ComputationGraph& cg) {
         slen = one_batch.src.size();
-        // forward encoder
-        fwd_enc_builder.new_graph(cg);
-        fwd_enc_builder.start_new_sequence();
         std::vector<dynet::expr::Expression> h_fwd(slen);
-        for (unsigned int i = 0; i < slen; ++i) {
-            std::vector<dynet::expr::Expression> phi;
-            for(unsigned int f_i = 0; f_i < p_feature_enc.size(); f_i++){
-                dynet::expr::Expression i_f_t = lookup(cg, p_feature_enc[f_i], one_batch.src[i][f_i]);
-                phi.push_back(i_f_t);
+        std::vector<dynet::expr::Expression> h_bwd(slen);
+        std::vector<dynet::expr::Expression> h_bi(slen);
+        // forward encoder
+        if(rev_enc == false || bi_enc == true){
+            fwd_enc_builder.new_graph(cg);
+            fwd_enc_builder.start_new_sequence();
+            for (unsigned int i = 0; i < slen; ++i) {
+                std::vector<dynet::expr::Expression> phi;
+                for(unsigned int f_i = 0; f_i < p_feature_enc.size(); f_i++){
+                    dynet::expr::Expression i_f_t = lookup(cg, p_feature_enc[f_i], one_batch.src[i][f_i]);
+                    phi.push_back(i_f_t);
+                }
+                dynet::expr::Expression i_x_t = concatenate(phi);
+                fwd_enc_builder.add_input(i_x_t);
+                h_fwd[i] = fwd_enc_builder.back();
             }
-            dynet::expr::Expression i_x_t = concatenate(phi);
-            fwd_enc_builder.add_input(i_x_t);
-            h_fwd[i] = fwd_enc_builder.back();
-
         }
         // backward encoder
-        rev_enc_builder.new_graph(cg);
-        rev_enc_builder.start_new_sequence();
-        std::vector<dynet::expr::Expression> h_bwd(slen);
-        for (unsigned int ind = 0; ind < slen; ++ind) {
-            unsigned int i = (slen - 1) - ind;
-            assert(i >= 0);
-            std::vector<dynet::expr::Expression> phi;
-            for(unsigned int f_i = 0; f_i < p_feature_enc.size(); f_i++){
-                dynet::expr::Expression i_f_t = lookup(cg, p_feature_enc[f_i], one_batch.src[i][f_i]);
-                phi.push_back(i_f_t);
+        if(rev_enc == true || bi_enc == true){
+            rev_enc_builder.new_graph(cg);
+            rev_enc_builder.start_new_sequence();
+            for (unsigned int ind = 0; ind < slen; ++ind) {
+                unsigned int i = (slen - 1) - ind;
+                assert(i >= 0);
+                std::vector<dynet::expr::Expression> phi;
+                for(unsigned int f_i = 0; f_i < p_feature_enc.size(); f_i++){
+                    dynet::expr::Expression i_f_t = lookup(cg, p_feature_enc[f_i], one_batch.src[i][f_i]);
+                    phi.push_back(i_f_t);
+                }
+                dynet::expr::Expression i_x_t = concatenate(phi);
+                rev_enc_builder.add_input(i_x_t);
+                h_bwd[i] = rev_enc_builder.back();
             }
-            dynet::expr::Expression i_x_t = concatenate(phi);
-            rev_enc_builder.add_input(i_x_t);
-            h_bwd[i] = rev_enc_builder.back();
         }
-        // bidirectional encoding
-        std::vector<dynet::expr::Expression> h_bi(slen);
-        for (unsigned i = 0; i < slen; ++i) {
-            h_bi[i] = concatenate(std::vector<Expression>({h_fwd[i], h_bwd[i]}));
+        dynet::expr::Expression i_h_enc;
+        if(bi_enc){
+            // bidirectional encoding
+            for (unsigned i = 0; i < slen; ++i) {
+                h_bi[i] = concatenate(std::vector<Expression>({h_fwd[i], h_bwd[i]}));
+            }
+            i_h_enc = concatenate_cols(h_bi);
+        }else{
+            if(rev_enc){
+                // backward encoding
+                i_h_enc = concatenate_cols(h_bwd);
+            }else{
+                // forward encoding
+                i_h_enc = concatenate_cols(h_fwd);
+            }
         }
-        dynet::expr::Expression i_h_enc = concatenate_cols(h_bi);
         dynet::expr::Expression i_Ua = parameter(cg, p_Ua);
         dynet::expr::Expression i_Uahj = i_Ua * i_h_enc;
         // Initialize decoder
+        std::vector<dynet::expr::Expression> vec_enc_final_state;
+        if(rev_enc){
+            vec_enc_final_state = rev_enc_builder.final_s();
+        }else{
+            vec_enc_final_state = fwd_enc_builder.final_s();
+        }
         dec_builder.new_graph(cg);
         std::vector<dynet::expr::Expression> vec_dec_init_state;
-        std::vector<dynet::expr::Expression> vec_enc_final_state = rev_enc_builder.final_s();
         for (unsigned int i = 0; i < vec_enc_final_state.size(); i++){
             dynet::expr::Expression i_dec_init_w = parameter(cg, p_dec_init_w[i]);
             dynet::expr::Expression i_dec_init_bias = parameter(cg, p_dec_init_bias[i]);
@@ -147,6 +209,11 @@ public:
         }
         dec_builder.start_new_sequence(vec_dec_init_state);
         return std::vector<dynet::expr::Expression>({i_Uahj, i_h_enc});
+    }
+                
+    std::vector<dynet::expr::Expression> init_feed(const batch &one_batch, dynet::ComputationGraph& cg){
+        std::vector<dynet::expr::Expression> i_feed{dynet::expr::zeroes(cg, dynet::Dim({dec_feeding_size}, one_batch.trg.at(0).size()))};
+        return i_feed;
     }
 
     dynet::expr::Expression decoder_attention(dynet::ComputationGraph& cg, const std::vector<unsigned int> prev, const dynet::expr::Expression i_feed, const dynet::expr::Expression i_Uahj){
@@ -173,7 +240,12 @@ public:
         
         dynet::expr::Expression i_alpha_t = softmax(i_att_pred_t);
         dynet::expr::Expression i_c_t = i_h_enc * i_alpha_t;
-        dynet::expr::Expression i_feed_next = concatenate(std::vector<Expression>({dec_builder.h.back().back(), i_c_t})); 
+        dynet::expr::Expression i_feed_next;
+        if(dec_feed_hidden){
+            i_feed_next = concatenate(std::vector<Expression>({dec_builder.h.back().back(), i_c_t})); 
+        }else{
+            i_feed_next = i_c_t; 
+        }
         dynet::expr::Expression i_out_pred_t = i_out_bias + i_out_R * i_feed_next;
         
         return std::vector<dynet::expr::Expression>({i_out_pred_t, i_feed_next});
@@ -208,6 +280,9 @@ private:
         ar & dec_builder;
         ar & rev_enc_builder;
         ar & fwd_enc_builder;
+        ar & rev_enc;
+        ar & bi_enc;
+        ar & dec_feeding_size;
     }
  
 };

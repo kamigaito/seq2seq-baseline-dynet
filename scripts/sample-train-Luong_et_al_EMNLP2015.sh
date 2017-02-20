@@ -1,0 +1,22 @@
+#!/bin/sh
+./bin/seq2seq \
+--mode train \
+--rootdir ./sample/model \
+--srcfile ./sample/src.ja \
+--trgfile ./sample/trg.en \
+--srcvalfile ./sample/srcval.ja \
+--trgvalfile ./sample/trgval.en \
+--optim adadelta \
+--max_batch_l 1 \
+--max_length 300 \
+--epochs 20 \
+--enc_feature_vocab_size 20000 \
+--dec_word_vocab_size 20000 \
+--dec_word_vec_size 256 \
+--num_layers 3 \
+--rnn_size 256 \
+--att_size 256 \
+--dec_feed_hidden 0 \
+--bi_enc 1 \
+--rev_enc 1 \
+--dynet-mem 8000

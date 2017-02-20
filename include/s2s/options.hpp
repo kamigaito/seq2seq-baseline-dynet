@@ -34,7 +34,8 @@ namespace s2s {
         unsigned int att_size;
         bool shared_input;
         bool dec_feed_hidden;
-        bool enc_bidirection;
+        bool bi_enc;
+        bool rev_enc;
         std::string enc_feature_vec_size_str;
         std::string enc_feature_vocab_size_str;
         std::vector<unsigned int> enc_feature_vec_size;
@@ -89,7 +90,8 @@ namespace s2s {
             guided_output_weight = 1.0;
             guided_output_decay = 1.0;
             dec_feed_hidden = false;
-            enc_bidirection = true;
+            bi_enc = true;
+            rev_enc = true;
             epochs = 20;
             start_epoch = 1;
             optim = "sgd";
@@ -116,7 +118,9 @@ private:
             ar & att_size;
             ar & shared_input;
             ar & dec_feed_hidden;
-            ar & enc_bidirection;
+            ar & dec_feed_hidden;
+            ar & bi_enc;
+            ar & rev_enc;
             ar & enc_feature_vec_size;
             ar & enc_feature_vocab_size;
             ar & dec_word_vec_size;
@@ -132,8 +136,6 @@ private:
             ar & learning_rate;
             ar & dropout;
             ar & lr_decay;
-            ar & max_batch_l;
-            ar & max_length;
             ar & start_symbol;
             ar & end_symbol;
             ar & unk_symbol;
@@ -163,7 +165,8 @@ private:
         ("att_size", po::value<unsigned int>(&(opts->att_size))->default_value(256), "batch size")
         ("shared_input", po::value<bool>(&(opts->shared_input))->default_value(false), "batch size")
         ("dec_feed_hidden", po::value<bool>(&(opts->dec_feed_hidden))->default_value(false), "batch size")
-        ("enc_bidirection", po::value<bool>(&(opts->enc_bidirection))->default_value(true), "batch size")
+        ("bi_enc", po::value<bool>(&(opts->bi_enc))->default_value(true), "batch size")
+        ("rev_enc", po::value<bool>(&(opts->rev_enc))->default_value(true), "batch size")
         ("enc_feature_vec_size", po::value<std::string>(&(opts->enc_feature_vec_size_str))->default_value("256"), "target train file")
         ("enc_feature_vocab_size", po::value<std::string>(&(opts->enc_feature_vocab_size_str))->default_value("20000"), "target train file")
         ("dec_word_vec_size", po::value<unsigned int>(&(opts->dec_word_vec_size)), "batch size")

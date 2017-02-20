@@ -31,7 +31,7 @@ namespace s2s {
         dynet::ComputationGraph cg;
         osent.push_back(std::vector<unsigned int>(one_batch.src.at(0).at(0).size(), d.target_start_id));
         std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
-        std::vector<dynet::expr::Expression> i_feed{dynet::expr::zeroes(cg, dynet::Dim({opts.rnn_size * 3}, one_batch.src.at(0).at(0).size()))};
+        std::vector<dynet::expr::Expression> i_feed = encdec->init_feed(one_batch, cg);
         for (int t = 0; t < opts.max_length; ++t) {
             dynet::expr::Expression i_att_t = encdec->decoder_attention(cg, osent[t], i_feed[t], i_enc[0]);
             std::vector<dynet::expr::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);

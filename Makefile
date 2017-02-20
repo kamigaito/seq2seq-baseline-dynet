@@ -1,5 +1,5 @@
 TARGET="./bin/seq2seq"
-CC=nvcc
+CC=${PATH_TO_CUDA}/bin/nvcc
 LINK=-lboost_program_options -lboost_filesystem -lboost_system -lboost_regex -lboost_iostreams -lboost_serialization -lgdynet -ldynetcuda -lcublas -lcudart
 OPT=-std=c++11 -g -O3
 INCLUDES=-I./include -I${BOOST_ROOT}/include -I${PATH_TO_EIGEN} -I${PATH_TO_DYNET} -I${PATH_TO_CUDA}/include

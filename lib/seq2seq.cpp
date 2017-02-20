@@ -78,7 +78,7 @@ namespace s2s {
                 float loss_att = 0.0;
                 float loss_out = 0.0;
                 std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
-                std::vector<dynet::expr::Expression> i_feed{dynet::expr::zeroes(cg, dynet::Dim({opts.rnn_size * 3}, one_batch.trg.at(0).size()))};
+                std::vector<dynet::expr::Expression> i_feed = encdec->init_feed(one_batch, cg);
                 for (unsigned int t = 0; t < one_batch.trg.size() - 1; ++t) {
                     dynet::expr::Expression i_att_t = encdec->decoder_attention(cg, one_batch.trg[t], i_feed[t], i_enc[0]);
                     if(opts.guided_alignment == true){
