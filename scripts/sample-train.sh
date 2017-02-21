@@ -6,14 +6,18 @@
 --trgfile ./sample/trg.en \
 --srcvalfile ./sample/srcval.ja \
 --trgvalfile ./sample/trgval.en \
---optim adadelta \
---max_batch_l 41 \
---max_length 354 \
---epochs 20 \
---enc_feature_vocab_size 4321 \
---dec_word_vocab_size 1234 \
---dec_word_vec_size 103 \
+--enc_feature_vocab_size 5000 \
+--enc_feature_vec_size 128 \
+--dec_word_vocab_size 5000 \
+--dec_word_vec_size 128 \
 --num_layers 1 \
---rnn_size 119 \
---att_size 113 \
+--rnn_size 128 \
+--att_size 128 \
+--optim adam \
+--lr_decay 0.0 \
+--learning_rate 0.001 \
+--max_batch_train 16 \
+--max_batch_pred 8 \
+--max_length 300 \
+--epochs 20 \
 --dynet-mem 11000

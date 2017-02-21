@@ -5,4 +5,5 @@
 --modelfile ./sample/model/save_10.model \
 --srcfile ./sample/srcval.ja \
 --trgfile ./sample/model/predict.txt \
+--max_batch_pred 8 \
 --dynet-mem 11000

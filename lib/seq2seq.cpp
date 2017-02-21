@@ -15,6 +15,7 @@
 #include <fstream>
 #include <sstream>
 #include <type_traits>
+#include <time.h>
 
 #include <boost/serialization/vector.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -67,13 +68,18 @@ namespace s2s {
             std::cerr << "Trainer does not exist !"<< std::endl;
             assert(false);
         }
+        trainer->eta0 = opts.learning_rate;
+        trainer->eta_decay = opts.lr_decay;
         unsigned int epoch = 0;
         while(epoch < opts.epochs){
             // train
             para_corp_train.shuffle();
             float align_w = opts.guided_alignment_weight;
             batch one_batch;
-            while(para_corp_train.next_batch_para(one_batch, opts.max_batch_l, dicts)){
+            unsigned int bid = 0;
+            while(para_corp_train.next_batch_para(one_batch, opts.max_batch_train, dicts)){
+                bid++;
+                auto chrono_start = std::chrono::system_clock::now();
                 dynet::ComputationGraph cg;
                 float loss_att = 0.0;
                 float loss_out = 0.0;
@@ -95,7 +101,9 @@ namespace s2s {
                     cg.backward(i_err);
                     trainer->update(1.0 / double(one_batch.src.at(0).at(0).size()));
                 }
-                std::cout << loss_att << "\t" << loss_out << std::endl;
+                auto chrono_end = std::chrono::system_clock::now();
+                auto time_used = (double)std::chrono::duration_cast<std::chrono::milliseconds>(chrono_end - chrono_start).count() / (double)1000;
+                std::cout << "batch: " << bid << ",\toutput loss: " << loss_att << ",\tattention loss: " << loss_out << ",\tsource length: " << one_batch.src.size() << ",\ttarget length: " << one_batch.trg.size() << ",\ttime: " << time_used << " [s]" << std::endl;
             }
             trainer->update_epoch();
             trainer->status();
@@ -107,7 +115,7 @@ namespace s2s {
             std::cerr << "dev" << std::endl;
             encdec->disable_dropout();
             ofstream dev_sents(opts.rootdir + "/dev_" + to_string(epoch) + ".txt");
-            while(para_corp_dev.next_batch_para(one_batch, opts.max_batch_l, dicts)){
+            while(para_corp_dev.next_batch_para(one_batch, opts.max_batch_pred, dicts)){
                 std::vector<std::vector<unsigned int> > osent;
                 s2s::greedy_decode(one_batch, osent, encdec, dicts, opts);
                 dev_sents << s2s::print_sents(osent, dicts);
@@ -139,7 +147,7 @@ namespace s2s {
         mono_corp.load_src(opts.srcfile, dicts);
         batch one_batch;
         ofstream predict_sents(opts.trgfile);
-        while(mono_corp.next_batch_mono(one_batch, opts.max_batch_l, dicts)){
+        while(mono_corp.next_batch_mono(one_batch, opts.max_batch_pred, dicts)){
             std::vector<std::vector<unsigned int> > osent;
             s2s::greedy_decode(one_batch, osent, encdec, dicts, opts);
             predict_sents << s2s::print_sents(osent, dicts);
