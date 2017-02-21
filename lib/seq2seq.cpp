@@ -85,7 +85,7 @@ namespace s2s {
                         dynet::expr::Expression i_err = sum_batches(pickneglogsoftmax(i_att_t, one_batch.align[t]));
                         loss_att += as_scalar(cg.incremental_forward(i_err));
                         cg.backward(i_err);
-                        trainer->update(align_w * 1.0 / double(one_batch.src.size()));
+                        trainer->update(align_w * 1.0 / double(one_batch.src.at(0).at(0).size()));
                     }
                     std::vector<dynet::expr::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);
                     i_feed.push_back(i_out_t[1]);
@@ -93,7 +93,7 @@ namespace s2s {
                     //cg.print_graphviz();
                     loss_att += as_scalar(cg.incremental_forward(i_err));
                     cg.backward(i_err);
-                    trainer->update(1.0 / double(one_batch.src.size()));
+                    trainer->update(1.0 / double(one_batch.src.at(0).at(0).size()));
                 }
                 std::cout << loss_att << "\t" << loss_out << std::endl;
             }

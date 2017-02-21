@@ -45,7 +45,6 @@ public:
     bool rev_enc;
     bool bi_enc;
     bool dec_feed_hidden;
-    unsigned int dec_feeding_size;
 
     unsigned int slen;
 
@@ -58,10 +57,11 @@ public:
         unsigned int num_layers = opts->num_layers;
         unsigned int rnn_size = opts->rnn_size;
         unsigned int enc_input_size = 0;
+        unsigned int dec_feeding_size = 0;
 
-        p_feature_enc.resize(opts->enc_feature_vec_size.size());
+        assert(opts->enc_feature_vocab_size.size() == opts->enc_feature_vec_size.size());
         for(unsigned int i = 0; i < opts->enc_feature_vec_size.size(); i++){
-            p_feature_enc[i] = model.add_lookup_parameters(opts->enc_feature_vocab_size.at(i), {opts->enc_feature_vec_size.at(i)});
+            p_feature_enc.push_back(model.add_lookup_parameters(opts->enc_feature_vocab_size.at(i), {opts->enc_feature_vec_size.at(i)}));
             enc_input_size += opts->enc_feature_vec_size.at(i);
         }
         
@@ -100,35 +100,21 @@ public:
             p_Ua = model.add_parameters({opts->att_size, unsigned(opts->rnn_size * 1)});
         }
         p_va = model.add_parameters({opts->att_size});
-        if(bi_enc){
+        if(bi_enc ==  true || rev_enc == true){
             rev_enc_builder = dynet::LSTMBuilder(
                 num_layers,
                 enc_input_size,
                 rnn_size,
                 model
             );
+        }
+        if(bi_enc == true || rev_enc == false){
             fwd_enc_builder = dynet::LSTMBuilder(
                 num_layers,
                 enc_input_size,
                 rnn_size,
                 model
             );
-        }else{
-            if(rev_enc){
-                rev_enc_builder = dynet::LSTMBuilder(
-                    num_layers,
-                    enc_input_size,
-                    rnn_size,
-                    model
-                );
-            }else{
-                fwd_enc_builder = dynet::LSTMBuilder(
-                    num_layers,
-                    enc_input_size,
-                    rnn_size,
-                    model
-                );
-            }
         }
         dec_builder = dynet::LSTMBuilder(
             num_layers,
@@ -147,15 +133,24 @@ public:
         if(rev_enc == false || bi_enc == true){
             fwd_enc_builder.new_graph(cg);
             fwd_enc_builder.start_new_sequence();
-            for (unsigned int i = 0; i < slen; ++i) {
-                std::vector<dynet::expr::Expression> phi;
+            for (unsigned int t_i = 0; t_i < slen; ++t_i) {
+                assert(one_batch.src.at(t_i).size() == p_feature_enc.size());
+                std::vector<dynet::expr::Expression> vec_phi(p_feature_enc.size());
                 for(unsigned int f_i = 0; f_i < p_feature_enc.size(); f_i++){
-                    dynet::expr::Expression i_f_t = lookup(cg, p_feature_enc[f_i], one_batch.src[i][f_i]);
-                    phi.push_back(i_f_t);
+                    /*
+                    for(unsigned int b_i = 0; b_i < one_batch.src.at(t_i).at(f_i).size(); b_i++){
+                        if(!(0 <= one_batch.src.at(t_i).at(f_i).at(b_i) && one_batch.src.at(t_i).at(f_i).at(b_i) < p_feature_enc.at(f_i).dim().d[1])){
+                            std::cerr << "0 < " << one_batch.src.at(t_i).at(f_i).at(b_i) << " < " << p_feature_enc.at(f_i).dim().d[1] << std::endl;
+                            assert(false);
+                        }
+                    }
+                    */
+                    vec_phi[f_i] = lookup(cg, p_feature_enc[f_i], one_batch.src.at(t_i).at(f_i));
                 }
-                dynet::expr::Expression i_x_t = concatenate(phi);
+                assert(one_batch.src.at(t_i).size() == vec_phi.size());
+                dynet::expr::Expression i_x_t = concatenate(vec_phi);
                 fwd_enc_builder.add_input(i_x_t);
-                h_fwd[i] = fwd_enc_builder.back();
+                h_fwd[t_i] = fwd_enc_builder.back();
             }
         }
         // backward encoder
@@ -163,16 +158,25 @@ public:
             rev_enc_builder.new_graph(cg);
             rev_enc_builder.start_new_sequence();
             for (unsigned int ind = 0; ind < slen; ++ind) {
-                unsigned int i = (slen - 1) - ind;
-                assert(i >= 0);
-                std::vector<dynet::expr::Expression> phi;
+                unsigned int t_i = (slen - 1) - ind;
+                assert(t_i >= 0);
+                assert(one_batch.src.at(t_i).size() == p_feature_enc.size());
+                std::vector<dynet::expr::Expression> vec_phi(p_feature_enc.size());
                 for(unsigned int f_i = 0; f_i < p_feature_enc.size(); f_i++){
-                    dynet::expr::Expression i_f_t = lookup(cg, p_feature_enc[f_i], one_batch.src[i][f_i]);
-                    phi.push_back(i_f_t);
+                    /*
+                    for(unsigned int b_i = 0; b_i < one_batch.src.at(t_i).at(f_i).size(); b_i++){
+                        if(!(0 <= one_batch.src.at(t_i).at(f_i).at(b_i) && one_batch.src.at(t_i).at(f_i).at(b_i) < p_feature_enc.at(f_i).dim().d[1])){
+                            std::cerr << "0 < " << one_batch.src.at(t_i).at(f_i).at(b_i) << " < " << p_feature_enc.at(f_i).dim().d[1] << std::endl;
+                            assert(false);
+                        }
+                    }
+                    */
+                    vec_phi[f_i] = lookup(cg, p_feature_enc[f_i], one_batch.src.at(t_i).at(f_i));
                 }
-                dynet::expr::Expression i_x_t = concatenate(phi);
+                assert(one_batch.src.at(t_i).size() == vec_phi.size());
+                dynet::expr::Expression i_x_t = concatenate(vec_phi);
                 rev_enc_builder.add_input(i_x_t);
-                h_bwd[i] = rev_enc_builder.back();
+                h_bwd[t_i] = rev_enc_builder.back();
             }
         }
         dynet::expr::Expression i_h_enc;
@@ -212,7 +216,8 @@ public:
     }
                 
     std::vector<dynet::expr::Expression> init_feed(const batch &one_batch, dynet::ComputationGraph& cg){
-        std::vector<dynet::expr::Expression> i_feed{dynet::expr::zeroes(cg, dynet::Dim({dec_feeding_size}, one_batch.trg.at(0).size()))};
+        // std::vector<dynet::expr::Expression> i_feed{dynet::expr::zeroes(cg, dynet::Dim({dec_feeding_size}, one_batch.trg.at(0).size()))};
+        std::vector<dynet::expr::Expression> i_feed{dynet::expr::zeroes(cg, dynet::Dim({p_out_R.dim().d[1]}, one_batch.trg.at(0).size()))};
         return i_feed;
     }
 
@@ -286,7 +291,6 @@ private:
         ar & fwd_enc_builder;
         ar & rev_enc;
         ar & bi_enc;
-        ar & dec_feeding_size;
     }
  
 };

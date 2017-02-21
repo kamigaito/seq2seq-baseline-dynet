@@ -31,6 +31,7 @@ namespace s2s {
             for(const std::string token : tokens){
                 std::vector<std::string> features;
                 boost::algorithm::split_regex(features, token, boost::regex("-\\|-"));
+                assert(features.size() == d.size());
                 if(features.size() != vec_str_freq.size()){
                     vec_str_freq.resize(features.size());
                 }
@@ -48,7 +49,7 @@ namespace s2s {
             CompareString comp;
             sort(str_vec.begin(), str_vec.end(), comp);
             for(auto& p1 : str_vec){
-                if(d.size() >= vec_vocab_size.at(feature_id) - 1){ // -1 for <UNK>
+                if(d[feature_id].size() >= vec_vocab_size.at(feature_id) - 1){ // -1 for <UNK>
                     break;
                 }
                 d[feature_id].convert(p1.first);
@@ -111,7 +112,7 @@ namespace s2s {
             }
             corpus_src.push_back(str_tokens);
             for(unsigned int feature_id = 0; feature_id < start.size(); feature_id++){
-                if (corpus_src.back().at(feature_id).front() != start.at(feature_id) && corpus_src.back().at(feature_id).front() != end.at(feature_id)) {
+                if (corpus_src.back().front().at(feature_id) != start.at(feature_id) && corpus_src.back().back().at(feature_id) != end.at(feature_id)) {
                     std::cerr << "Sentence in " << file_path << ":" << tlc << " didn't start or end with <s>, </s>\n";
                     abort();
                 }
@@ -204,15 +205,16 @@ namespace s2s {
             std::vector<std::vector<unsigned int>> col;
             for(unsigned int f_id = 0; f_id < vec_eos.size(); f_id++){
                 std::vector<unsigned int> feat(batch_size, vec_eos.at(f_id));
-                for(unsigned int sid = 0; sid < max_batch_size && sid + index < sents_order.size(); sid++){
+                for(unsigned int sid = 0; sid < batch_size && sid + index < sents_order.size(); sid++){
                     if(pos < vec_input.at(sents_order.at(sid + index)).size()){
-                        vec_input.at(sents_order.at(sid + index));
-                        vec_input.at(sents_order.at(sid + index)).at(pos);
                         feat[sid] = vec_input.at(sents_order.at(sid + index)).at(pos).at(f_id);
+                        assert(vec_input.at(sents_order.at(sid + index)).at(pos).size() == vec_eos.size());
                     }
                 }
                 col.push_back(feat);
             }
+            assert(col.front().size() == col.back().size());
+            assert(col.size() == vec_eos.size());
             converted.push_back(col);
         }
         return converted;
