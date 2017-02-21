@@ -81,6 +81,8 @@ namespace s2s {
                 bid++;
                 auto chrono_start = std::chrono::system_clock::now();
                 dynet::ComputationGraph cg;
+                std::vector<dynet::expr::Expression> errs_att;
+                std::vector<dynet::expr::Expression> errs_out;
                 float loss_att = 0.0;
                 float loss_out = 0.0;
                 std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
@@ -88,22 +90,31 @@ namespace s2s {
                 for (unsigned int t = 0; t < one_batch.trg.size() - 1; ++t) {
                     dynet::expr::Expression i_att_t = encdec->decoder_attention(cg, one_batch.trg[t], i_feed[t], i_enc[0]);
                     if(opts.guided_alignment == true){
-                        dynet::expr::Expression i_err = sum_batches(pickneglogsoftmax(i_att_t, one_batch.align[t]));
-                        loss_att += as_scalar(cg.incremental_forward(i_err));
-                        cg.backward(i_err);
-                        trainer->update(align_w * 1.0 / double(one_batch.src.at(0).at(0).size()));
+                        dynet::expr::Expression i_err = pickneglogsoftmax(i_att_t, one_batch.align[t]);
+                        errs_att.push_back(i_err);
                     }
                     std::vector<dynet::expr::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);
                     i_feed.push_back(i_out_t[1]);
-                    dynet::expr::Expression i_err = sum_batches(pickneglogsoftmax(i_out_t[0], one_batch.trg[t+1]));
-                    //cg.print_graphviz();
-                    loss_att += as_scalar(cg.incremental_forward(i_err));
-                    cg.backward(i_err);
-                    trainer->update(1.0 / double(one_batch.src.at(0).at(0).size()));
+                    dynet::expr::Expression i_err = pickneglogsoftmax(i_out_t[0], one_batch.trg[t+1]);
+                    errs_out.push_back(i_err);
                 }
+                dynet::expr::Expression i_nerr_out = sum_batches(sum(errs_out));
+                loss_out = as_scalar(cg.forward(i_nerr_out));
+                dynet::expr::Expression i_nerr_all;
+                if(opts.guided_alignment == true){
+                    dynet::expr::Expression i_nerr_att = sum_batches(sum(errs_att));
+                    loss_att = as_scalar(cg.forward(i_nerr_att));
+                    i_nerr_all = i_nerr_out + align_w * i_nerr_att;
+                }else{
+                    i_nerr_all = i_nerr_out;
+                }
+                cg.incremental_forward(i_nerr_all);
+                cg.backward(i_nerr_all);
+                //cg.print_graphviz();
+                trainer->update(1.0 / double(one_batch.src.at(0).at(0).size()));
                 auto chrono_end = std::chrono::system_clock::now();
                 auto time_used = (double)std::chrono::duration_cast<std::chrono::milliseconds>(chrono_end - chrono_start).count() / (double)1000;
-                std::cout << "batch: " << bid << ",\toutput loss: " << loss_att << ",\tattention loss: " << loss_out << ",\tsource length: " << one_batch.src.size() << ",\ttarget length: " << one_batch.trg.size() << ",\ttime: " << time_used << " [s]" << std::endl;
+                std::cout << "batch: " << bid << ",\toutput loss: " << loss_out << ",\tattention loss: " << loss_att << ",\tsource length: " << one_batch.src.size() << ",\ttarget length: " << one_batch.trg.size() << ",\ttime: " << time_used << " [s]" << std::endl;
             }
             trainer->update_epoch();
             trainer->status();

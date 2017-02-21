@@ -16,8 +16,8 @@
 --optim adam \
 --lr_decay 0.0 \
 --learning_rate 0.001 \
---max_batch_train 16 \
---max_batch_pred 8 \
+--max_batch_train 1 \
+--max_batch_pred 1 \
 --max_length 300 \
 --epochs 20 \
 --dynet-mem 11000
