@@ -73,10 +73,10 @@ namespace s2s {
         trainer->clip_threshold = opts.clip_threshold;
         trainer->clipping_enabled = opts.clipping_enabled;
         unsigned int epoch = 0;
+        float align_w = opts.guided_alignment_weight;
         while(epoch < opts.epochs){
             // train
             para_corp_train.shuffle();
-            float align_w = opts.guided_alignment_weight;
             batch one_batch;
             unsigned int bid = 0;
             while(para_corp_train.next_batch_para(one_batch, opts.max_batch_train, dicts)){
@@ -127,6 +127,7 @@ namespace s2s {
             }
             trainer->update_epoch();
             trainer->status();
+            std::cerr << std::endl;
             align_w *= opts.guided_alignment_decay;
             para_corp_train.reset_index();
             epoch++;
