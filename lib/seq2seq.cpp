@@ -53,6 +53,7 @@ namespace s2s {
         // for debug
         dynet::Model model;
         encoder_decoder* encdec = new encoder_decoder(model, &opts);
+        encdec->set_dropout(opts.dropout);
         dynet::Trainer* trainer = nullptr;
         if(opts.optim == "sgd"){
             trainer = new dynet::SimpleSGDTrainer(model);
@@ -141,8 +142,8 @@ namespace s2s {
                 dev_sents << s2s::print_sents(osent, dicts);
             }
             dev_sents.close();
-            para_corp_dev.reset_index();
             encdec->set_dropout(opts.dropout);
+            para_corp_dev.reset_index();
             // save Model
             ofstream model_out(opts.rootdir + "/" + opts.save_file + "_" + to_string(epoch) + ".model");
             boost::archive::text_oarchive model_oa(model_out);
