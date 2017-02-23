@@ -126,6 +126,7 @@ namespace s2s {
                 std::cerr << "[epoch=" << trainer->epoch << " eta=" << trainer->eta << " clips=" << trainer->clips_since_status << " updates=" << trainer->updates_since_status << "] " << std::endl;
             }
             trainer->update_epoch();
+            trainer->status();
             align_w *= opts.guided_alignment_decay;
             para_corp_train.reset_index();
             epoch++;
