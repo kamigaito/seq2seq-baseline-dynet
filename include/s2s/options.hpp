@@ -36,6 +36,7 @@ namespace s2s {
         bool dec_feed_hidden;
         bool bi_enc;
         bool rev_enc;
+        bool clipping_enabled;
         std::string enc_feature_vec_size_str;
         std::string enc_feature_vocab_size_str;
         std::vector<unsigned int> enc_feature_vec_size;
@@ -78,6 +79,7 @@ namespace s2s {
             rnn_size = 256;
             att_size = 256;
             shared_input = false;
+            clipping_enabled = false;
             /*
             enc_feature_vec_size;
             enc_feature_vocab_size;
@@ -94,6 +96,7 @@ namespace s2s {
             dec_feed_hidden = false;
             bi_enc = true;
             rev_enc = true;
+            clipping_enabled = true;
             epochs = 20;
             start_epoch = 1;
             optim = "sgd";
@@ -141,6 +144,7 @@ private:
             ar & dropout;
             ar & lr_decay;
             ar & clip_threshold;
+            ar & clipping_enabled;
             ar & start_symbol;
             ar & end_symbol;
             ar & unk_symbol;

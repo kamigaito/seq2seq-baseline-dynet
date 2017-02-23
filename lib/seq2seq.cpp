@@ -71,6 +71,7 @@ namespace s2s {
         trainer->eta0 = opts.learning_rate;
         trainer->eta_decay = opts.lr_decay;
         trainer->clip_threshold = opts.clip_threshold;
+        trainer->clipping_enabled = opts.clipping_enabled;
         unsigned int epoch = 0;
         while(epoch < opts.epochs){
             // train
@@ -122,8 +123,7 @@ namespace s2s {
                 std::cerr << ",\tsource length: " << one_batch.src.size();
                 std::cerr << ",\ttarget length: " << one_batch.trg.size();
                 std::cerr << ",\ttime: " << time_used << " [s]" << std::endl;
-                trainer->status();
-                std::cerr << std::endl;
+                std::cerr << "[epoch=" << trainer->epoch << " eta=" << trainer->eta << " clips=" << trainer->clips_since_status << " updates=" << trainer->updates_since_status << "] " << std::endl;
             }
             trainer->update_epoch();
             align_w *= opts.guided_alignment_decay;
