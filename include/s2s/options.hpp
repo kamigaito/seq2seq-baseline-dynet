@@ -176,6 +176,7 @@ private:
         ("dec_feed_hidden", po::value<bool>(&(opts->dec_feed_hidden))->default_value(false), "batch size")
         ("bi_enc", po::value<bool>(&(opts->bi_enc))->default_value(true), "batch size")
         ("rev_enc", po::value<bool>(&(opts->rev_enc))->default_value(true), "batch size")
+        ("clipping_enabled", po::value<bool>(&(opts->clipping_enabled))->default_value(true), "batch size")
         ("enc_feature_vec_size", po::value<std::string>(&(opts->enc_feature_vec_size_str))->default_value("256"), "target train file")
         ("enc_feature_vocab_size", po::value<std::string>(&(opts->enc_feature_vocab_size_str))->default_value("20000"), "target train file")
         ("dec_word_vec_size", po::value<unsigned int>(&(opts->dec_word_vec_size)), "batch size")
