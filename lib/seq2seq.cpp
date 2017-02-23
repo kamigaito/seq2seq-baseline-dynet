@@ -70,6 +70,7 @@ namespace s2s {
         }
         trainer->eta0 = opts.learning_rate;
         trainer->eta_decay = opts.lr_decay;
+        trainer->clip_threshold = opts.clip_threshold;
         unsigned int epoch = 0;
         while(epoch < opts.epochs){
             // train
@@ -103,7 +104,7 @@ namespace s2s {
                 dynet::expr::Expression i_nerr_all;
                 if(opts.guided_alignment == true){
                     dynet::expr::Expression i_nerr_att = sum_batches(sum(errs_att));
-                    loss_att = as_scalar(cg.forward(i_nerr_att));
+                    loss_att = as_scalar(cg.incremental_forward(i_nerr_att));
                     i_nerr_all = i_nerr_out + align_w * i_nerr_att;
                 }else{
                     i_nerr_all = i_nerr_out;
@@ -114,11 +115,17 @@ namespace s2s {
                 trainer->update(1.0 / double(one_batch.src.at(0).at(0).size()));
                 auto chrono_end = std::chrono::system_clock::now();
                 auto time_used = (double)std::chrono::duration_cast<std::chrono::milliseconds>(chrono_end - chrono_start).count() / (double)1000;
-                std::cout << "batch: " << bid << ",\toutput loss: " << loss_out << ",\tattention loss: " << loss_att << ",\tsource length: " << one_batch.src.size() << ",\ttarget length: " << one_batch.trg.size() << ",\ttime: " << time_used << " [s]" << std::endl;
+                std::cerr << "batch: " << bid;
+                std::cerr << ",\tsize: " << one_batch.src.at(0).at(0).size();
+                std::cerr << ",\toutput loss: " << loss_out;
+                std::cerr << ",\tattention loss: " << loss_att;
+                std::cerr << ",\tsource length: " << one_batch.src.size();
+                std::cerr << ",\ttarget length: " << one_batch.trg.size();
+                std::cerr << ",\ttime: " << time_used << " [s]" << std::endl;
+                trainer->status();
+                std::cerr << std::endl;
             }
             trainer->update_epoch();
-            trainer->status();
-            std::cerr << std::endl;
             align_w *= opts.guided_alignment_decay;
             para_corp_train.reset_index();
             epoch++;
