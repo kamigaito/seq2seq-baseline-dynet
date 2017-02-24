@@ -133,6 +133,7 @@ namespace s2s {
             para_corp_train.reset_index();
             epoch++;
             // dev
+            encdec->disable_dropout();
             std::cerr << "dev" << std::endl;
             ofstream dev_sents(opts.rootdir + "/dev_" + to_string(epoch) + ".txt");
             while(para_corp_dev.next_batch_para(one_batch, opts.max_batch_pred, dicts)){
@@ -142,6 +143,7 @@ namespace s2s {
             }
             dev_sents.close();
             para_corp_dev.reset_index();
+            encdec->set_dropout(opts.dropout);
             // save Model
             ofstream model_out(opts.rootdir + "/" + opts.save_file + "_" + to_string(epoch) + ".model");
             boost::archive::text_oarchive model_oa(model_out);
@@ -156,6 +158,7 @@ namespace s2s {
         // load model
         dynet::Model model;
         encoder_decoder* encdec = new encoder_decoder(model, &opts);
+        encdec->disable_dropout();
         ifstream model_in(opts.modelfile);
         boost::archive::text_iarchive model_ia(model_in);
         model_ia >> model >> *encdec;
