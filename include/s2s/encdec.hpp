@@ -268,9 +268,9 @@ public:
     }
 
     void set_dropout(float d){
-        fwd_enc_builder.set_dropout(d);
-        rev_enc_builder.set_dropout(d);
-        dec_builder.set_dropout(d);
+        fwd_enc_builder.set_dropout(d, 0.0, 0.0);
+        rev_enc_builder.set_dropout(d, 0.0, 0.0);
+        dec_builder.set_dropout(d, 0.0, 0.0);
     }
 
 private:
