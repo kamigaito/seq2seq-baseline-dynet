@@ -53,7 +53,7 @@ namespace s2s {
         // for debug
         dynet::Model model;
         encoder_decoder* encdec = new encoder_decoder(model, &opts);
-        encdec->set_dropout(opts.dropout);
+        encdec->enable_dropout();
         dynet::Trainer* trainer = nullptr;
         if(opts.optim == "sgd"){
             trainer = new dynet::SimpleSGDTrainer(model);
@@ -143,7 +143,7 @@ namespace s2s {
             }
             dev_sents.close();
             para_corp_dev.reset_index();
-            encdec->set_dropout(opts.dropout);
+            encdec->enable_dropout();
             // save Model
             ofstream model_out(opts.rootdir + "/" + opts.save_file + "_" + to_string(epoch) + ".model");
             boost::archive::text_oarchive model_oa(model_out);
@@ -158,17 +158,17 @@ namespace s2s {
         // load model
         dynet::Model model;
         encoder_decoder* encdec = new encoder_decoder(model, &opts);
-        encdec->disable_dropout();
+        //encdec->disable_dropout();
         ifstream model_in(opts.modelfile);
         boost::archive::text_iarchive model_ia(model_in);
         model_ia >> model >> *encdec;
         model_in.close();
-        encdec->set_dropout(opts.dropout);
         // predict
         s2s::monoling_corpus mono_corp;
         mono_corp.load_src(opts.srcfile, dicts);
         batch one_batch;
         ofstream predict_sents(opts.trgfile);
+        encdec->disable_dropout();
         while(mono_corp.next_batch_mono(one_batch, opts.max_batch_pred, dicts)){
             std::vector<std::vector<unsigned int> > osent;
             s2s::greedy_decode(one_batch, osent, encdec, dicts, opts);

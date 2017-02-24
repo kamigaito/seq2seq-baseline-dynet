@@ -45,6 +45,7 @@ public:
     bool rev_enc;
     bool bi_enc;
     bool dec_feed_hidden;
+    float dropout_rate;
 
     unsigned int slen;
 
@@ -53,6 +54,7 @@ public:
         rev_enc = opts->rev_enc;
         bi_enc = opts->bi_enc;
         dec_feed_hidden = opts->dec_feed_hidden;
+        dropout_rate = opts->dropout_rate;
 
         unsigned int num_layers = opts->num_layers;
         unsigned int rnn_size = opts->rnn_size;
@@ -261,22 +263,24 @@ public:
 
     }
 
-    void set_dropout_masks(unsigned batch_size){
-        fwd_enc_builder.set_dropout_masks(batch_size);
-        rev_enc_builder.set_dropout_masks(batch_size);
-        dec_builder.set_dropout_masks(batch_size);
-    }
-
     void disable_dropout(){
-        fwd_enc_builder.disable_dropout();
-        rev_enc_builder.disable_dropout();
+        if(rev_enc == false || bi_enc == true){
+            fwd_enc_builder.disable_dropout();
+        }
+        if(rev_enc == true || bi_enc == true){
+            rev_enc_builder.disable_dropout();
+        }
         dec_builder.disable_dropout();
     }
 
-    void set_dropout(float d){
-        fwd_enc_builder.set_dropout(d, 0.0, 0.0);
-        rev_enc_builder.set_dropout(d, 0.0, 0.0);
-        dec_builder.set_dropout(d, 0.0, 0.0);
+    void enable_dropout(){
+        if(rev_enc == false || bi_enc == true){
+            fwd_enc_builder.set_dropout(dropout_rate, 0.f, 0.f);
+        }
+        if(rev_enc == true || bi_enc == true){
+            rev_enc_builder.set_dropout(dropout_rate, 0.f, 0.f);
+        }
+        dec_builder.set_dropout(dropout_rate, 0.f, 0.f);
     }
 
 private:
@@ -297,6 +301,7 @@ private:
         ar & fwd_enc_builder;
         ar & rev_enc;
         ar & bi_enc;
+        ar & dropout_rate;
     }
  
 };

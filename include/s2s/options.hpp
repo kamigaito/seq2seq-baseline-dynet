@@ -52,7 +52,7 @@ namespace s2s {
         unsigned int start_epoch;
         std::string optim;
         float learning_rate;
-        float dropout;
+        float dropout_rate;
         float lr_decay;
         float clip_threshold;
         unsigned int max_batch_train;
@@ -101,7 +101,7 @@ namespace s2s {
             start_epoch = 1;
             optim = "sgd";
             learning_rate = 1.0;
-            dropout = 0.5;
+            dropout_rate = 0.5;
             lr_decay = 1.0;
             clip_threshold = 5.0;
             max_batch_train = 32;
@@ -141,7 +141,7 @@ private:
             ar & start_epoch;
             ar & optim;
             ar & learning_rate;
-            ar & dropout;
+            ar & dropout_rate;
             ar & lr_decay;
             ar & clip_threshold;
             ar & clipping_enabled;
@@ -190,7 +190,7 @@ private:
         ("start_epoch", po::value<unsigned int>(&(opts->start_epoch))->default_value(1), "batch size")
         ("optim", po::value<std::string>(&(opts->optim))->default_value("sgd"), "source train file")
         ("learning_rate", po::value<float>(&(opts->learning_rate))->default_value(0.1), "batch size")
-        ("dropout", po::value<float>(&(opts->dropout))->default_value(0.5), "batch size")
+        ("dropout_rate", po::value<float>(&(opts->dropout_rate))->default_value(0.5), "batch size")
         ("lr_decay", po::value<float>(&(opts->lr_decay))->default_value(1.0), "batch size")
         ("clip_threshold", po::value<float>(&(opts->clip_threshold))->default_value(5.0), "batch size")
         ("max_batch_train", po::value<unsigned int>(&(opts->max_batch_train))->default_value(32), "batch size")
