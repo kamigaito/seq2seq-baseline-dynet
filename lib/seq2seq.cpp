@@ -88,7 +88,6 @@ namespace s2s {
                 std::vector<dynet::expr::Expression> errs_out;
                 float loss_att = 0.0;
                 float loss_out = 0.0;
-                encdec->set_dropout_masks(one_batch.src.at(0).at(0).size());
                 std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
                 std::vector<dynet::expr::Expression> i_feed = encdec->init_feed(one_batch, cg);
                 for (unsigned int t = 0; t < one_batch.trg.size() - 1; ++t) {
@@ -135,7 +134,6 @@ namespace s2s {
             epoch++;
             // dev
             std::cerr << "dev" << std::endl;
-            encdec->disable_dropout();
             ofstream dev_sents(opts.rootdir + "/dev_" + to_string(epoch) + ".txt");
             while(para_corp_dev.next_batch_para(one_batch, opts.max_batch_pred, dicts)){
                 std::vector<std::vector<unsigned int> > osent;
@@ -143,7 +141,6 @@ namespace s2s {
                 dev_sents << s2s::print_sents(osent, dicts);
             }
             dev_sents.close();
-            encdec->set_dropout(opts.dropout);
             para_corp_dev.reset_index();
             // save Model
             ofstream model_out(opts.rootdir + "/" + opts.save_file + "_" + to_string(epoch) + ".model");
@@ -163,7 +160,7 @@ namespace s2s {
         boost::archive::text_iarchive model_ia(model_in);
         model_ia >> model >> *encdec;
         model_in.close();
-        encdec->disable_dropout();
+        encdec->set_dropout(opts.dropout);
         // predict
         s2s::monoling_corpus mono_corp;
         mono_corp.load_src(opts.srcfile, dicts);
