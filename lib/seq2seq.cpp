@@ -88,6 +88,7 @@ namespace s2s {
                 std::vector<dynet::expr::Expression> errs_out;
                 float loss_att = 0.0;
                 float loss_out = 0.0;
+                encdec->set_dropout_masks(one_batch.src.at(0).at(0).size());
                 std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
                 std::vector<dynet::expr::Expression> i_feed = encdec->init_feed(one_batch, cg);
                 for (unsigned int t = 0; t < one_batch.trg.size() - 1; ++t) {

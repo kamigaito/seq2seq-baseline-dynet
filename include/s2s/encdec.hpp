@@ -261,6 +261,12 @@ public:
 
     }
 
+    void set_dropout_masks(unsigned batch_size){
+        fwd_enc_builder.set_dropout_masks(batch_size);
+        rev_enc_builder.set_dropout_masks(batch_size);
+        dec_builder.set_dropout_masks(batch_size);
+    }
+
     void disable_dropout(){
         fwd_enc_builder.disable_dropout();
         rev_enc_builder.disable_dropout();
