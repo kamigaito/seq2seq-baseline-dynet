@@ -71,6 +71,7 @@ namespace s2s {
         }
         trainer->eta0 = opts.learning_rate;
         trainer->eta = opts.learning_rate;
+        trainer->eta_decay = 0.f;
         trainer->clip_threshold = opts.clip_threshold;
         trainer->clipping_enabled = opts.clipping_enabled;
         unsigned int epoch = 0;
