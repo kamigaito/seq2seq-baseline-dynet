@@ -46,7 +46,7 @@ namespace s2s {
         bool guided_alignment;
         float guided_alignment_weight;
         float guided_alignment_decay;
-        float guided_alignment_start_epoch;
+        unsigned int guided_alignment_start_epoch;
         float guided_output_weight;
         float guided_output_decay;
         unsigned int epochs;
