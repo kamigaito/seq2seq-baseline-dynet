@@ -70,7 +70,7 @@ namespace s2s {
             assert(false);
         }
         trainer->eta0 = opts.learning_rate;
-        trainer->eta_decay = opts.lr_decay;
+        trainer->eta = opts.learning_rate;
         trainer->clip_threshold = opts.clip_threshold;
         trainer->clipping_enabled = opts.clipping_enabled;
         unsigned int epoch = 0;
@@ -93,7 +93,10 @@ namespace s2s {
                 for (unsigned int t = 0; t < one_batch.trg.size() - 1; ++t) {
                     dynet::expr::Expression i_att_t = encdec->decoder_attention(cg, one_batch.trg[t], i_feed[t], i_enc[0]);
                     if(opts.guided_alignment == true){
-                        dynet::expr::Expression i_err = pickneglogsoftmax(i_att_t, one_batch.align[t]);
+                        for(unsigned int i = 0; i < one_batch.align.at(t).size(); i++){
+                            assert(0 <= one_batch.align.at(t).at(i) < one_batch.src.size());
+                        }
+                        dynet::expr::Expression i_err = pickneglogsoftmax(i_att_t, one_batch.align.at(t));
                         errs_att.push_back(i_err);
                     }
                     std::vector<dynet::expr::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);
@@ -126,12 +129,10 @@ namespace s2s {
                 std::cerr << ",\ttime: " << time_used << " [s]" << std::endl;
                 std::cerr << "[epoch=" << trainer->epoch << " eta=" << trainer->eta << " clips=" << trainer->clips_since_status << " updates=" << trainer->updates_since_status << "] " << std::endl;
             }
+            para_corp_train.reset_index();
             trainer->update_epoch();
             trainer->status();
             std::cerr << std::endl;
-            align_w *= opts.guided_alignment_decay;
-            para_corp_train.reset_index();
-            epoch++;
             // dev
             encdec->disable_dropout();
             std::cerr << "dev" << std::endl;
@@ -149,6 +150,12 @@ namespace s2s {
             boost::archive::text_oarchive model_oa(model_out);
             model_oa << model << *encdec;
             model_out.close();
+            // preparation for next epoch
+            epoch++;
+            align_w *= opts.guided_alignment_decay;
+            if(epoch >= ops.guided_alignment_start_epoch){
+                trainer->eta *= opts.lr_decay;
+            }
         }
     }
 
