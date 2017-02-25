@@ -153,9 +153,11 @@ namespace s2s {
             model_out.close();
             // preparation for next epoch
             epoch++;
-            align_w *= opts.guided_alignment_decay;
-            if(epoch >= opts.guided_alignment_start_epoch){
+            if(epoch >= opts.start_epoch){
                 trainer->eta *= opts.lr_decay;
+            }
+            if(epoch >= opts.guided_alignment_start_epoch){
+                align_w *= opts.guided_alignment_decay;
             }
         }
     }
