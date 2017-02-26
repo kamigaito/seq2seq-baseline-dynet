@@ -69,8 +69,9 @@ namespace s2s {
             std::cerr << "Trainer does not exist !"<< std::endl;
             assert(false);
         }
-        trainer->eta0 = opts.learning_rate;
-        trainer->eta = opts.learning_rate;
+        float learning_rate = opts.learning_rate;
+        trainer->eta0 = learning_rate;
+        trainer->eta = learning_rate;
         trainer->eta_decay = 0.f;
         trainer->clip_threshold = opts.clip_threshold;
         trainer->clipping_enabled = opts.clipping_enabled;
@@ -156,10 +157,12 @@ namespace s2s {
             if(epoch >= opts.start_epoch){
                 if(epoch > opts.start_epoch){
                     if((epoch - opts.start_epoch) % opts.decay_for_each == 0){
-                        trainer->eta *= opts.learning_rate;
+                        learning_rate *= opts.lr_decay;
+                        trainer->eta = learning_rate;
                     }
-                }else{
-                    trainer->eta *= opts.learning_rate;
+                }else if(epoch == opts.start_epoch){
+                    learning_rate *= opts.lr_decay;
+                    trainer->eta = learning_rate;
                 }
             }
             if(epoch >= opts.guided_alignment_start_epoch){
