@@ -51,6 +51,7 @@ namespace s2s {
         float guided_output_decay;
         unsigned int epochs;
         unsigned int start_epoch;
+        unsigned int decay_for_each;
         std::string optim;
         float learning_rate;
         float dropout_rate;
@@ -101,6 +102,7 @@ namespace s2s {
             clipping_enabled = true;
             epochs = 20;
             start_epoch = 5;
+            decay_for_each = 5;
             optim = "sgd";
             learning_rate = 1.0;
             dropout_rate = 0.5;
@@ -191,7 +193,8 @@ private:
         ("guided_output_weight", po::value<float>(&(opts->guided_output_weight))->default_value(1.0), "batch size")
         ("guided_output_decay", po::value<float>(&(opts->guided_output_decay))->default_value(1.0), "batch size")
         ("epochs", po::value<unsigned int>(&(opts->epochs))->default_value(20), "batch size")
-        ("start_epoch", po::value<unsigned int>(&(opts->start_epoch))->default_value(1), "batch size")
+        ("start_epoch", po::value<unsigned int>(&(opts->start_epoch))->default_value(5), "batch size")
+        ("decay_for_each", po::value<unsigned int>(&(opts->decay_for_each))->default_value(5), "batch size")
         ("optim", po::value<std::string>(&(opts->optim))->default_value("sgd"), "source train file")
         ("learning_rate", po::value<float>(&(opts->learning_rate))->default_value(0.1), "batch size")
         ("dropout_rate", po::value<float>(&(opts->dropout_rate))->default_value(0.5), "batch size")

@@ -154,7 +154,13 @@ namespace s2s {
             // preparation for next epoch
             epoch++;
             if(epoch >= opts.start_epoch){
-                trainer->eta *= opts.lr_decay;
+                if(epoch > opts.start_epoch){
+                    if((epoch - opts.start_epoch) % opts.decay_for_each == 0){
+                        trainer->eta *= opts.learning_rate;
+                    }
+                }else{
+                    trainer->eta *= opts.learning_rate;
+                }
             }
             if(epoch >= opts.guided_alignment_start_epoch){
                 align_w *= opts.guided_alignment_decay;
