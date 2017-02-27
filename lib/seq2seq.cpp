@@ -158,13 +158,12 @@ namespace s2s {
                 if(epoch > opts.start_epoch){
                     if((epoch - opts.start_epoch) % opts.decay_for_each == 0){
                         learning_rate *= opts.lr_decay;
-                        trainer->eta = learning_rate;
                     }
                 }else if(epoch == opts.start_epoch){
                     learning_rate *= opts.lr_decay;
-                    trainer->eta = learning_rate;
                 }
             }
+            trainer->eta = learning_rate;
             if(epoch >= opts.guided_alignment_start_epoch){
                 align_w *= opts.guided_alignment_decay;
             }
