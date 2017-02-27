@@ -163,6 +163,7 @@ private:
         namespace po = boost::program_options;
         bpo->add_options()
         ("dynet-mem", po::value<unsigned int>()->default_value(8096), "mem")
+        ("dynet-weight-decay", po::value<float>()->default_value(0.0), "l2 decay")
         ("mode", po::value<std::string>(&(opts->mode))->required(), "select from 'train', 'predict' or 'test'")
         ("rootdir", po::value<std::string>(&(opts->rootdir))->required(), "source train file")
         ("srcfile", po::value<std::string>(&(opts->srcfile))->required(), "source train file")
