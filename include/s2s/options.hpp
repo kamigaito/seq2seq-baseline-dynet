@@ -46,9 +46,10 @@ namespace s2s {
         bool guided_alignment;
         float guided_alignment_weight;
         float guided_alignment_decay;
-        unsigned int guided_alignment_start_epoch;
         float guided_output_weight;
         float guided_output_decay;
+        unsigned int guided_alignment_start_epoch;
+        unsigned int guided_alignment_decay_for_each;
         unsigned int epochs;
         unsigned int start_epoch;
         unsigned int decay_for_each;
@@ -94,6 +95,7 @@ namespace s2s {
             guided_alignment_weight = 0.5;
             guided_alignment_decay = 0.9;
             guided_alignment_start_epoch = 5;
+            guided_alignment_decay_for_each = 5;
             guided_output_weight = 1.0;
             guided_output_decay = 1.0;
             dec_feed_hidden = false;
@@ -140,6 +142,7 @@ private:
             ar & guided_alignment_weight;
             ar & guided_alignment_decay;
             ar & guided_alignment_start_epoch;
+            ar & guided_alignment_decay_for_each;
             ar & guided_output_weight;
             ar & guided_output_decay;
             ar & epochs;
@@ -189,8 +192,9 @@ private:
         ("dec_word_vocab_size", po::value<unsigned int>(&(opts->dec_word_vocab_size)), "batch size")
         ("guided_alignment", po::value<bool>(&(opts->guided_alignment))->default_value(false), "batch size")
         ("guided_alignment_weight", po::value<float>(&(opts->guided_alignment_weight))->default_value(0.3), "batch size")
-        ("guided_alignment_decay", po::value<float>(&(opts->guided_alignment_decay))->default_value(1.0), "batch size")
-        ("guided_alignment_start_epoch", po::value<unsigned int>(&(opts->guided_alignment_start_epoch))->default_value(1), "batch size")
+        ("guided_alignment_decay", po::value<float>(&(opts->guided_alignment_decay))->default_value(0.5), "batch size")
+        ("guided_alignment_start_epoch", po::value<unsigned int>(&(opts->guided_alignment_start_epoch))->default_value(5), "batch size")
+        ("guided_alignment_decay_for_each", po::value<unsigned int>(&(opts->guided_alignment_decay_for_each))->default_value(5), "batch size")
         ("guided_output_weight", po::value<float>(&(opts->guided_output_weight))->default_value(1.0), "batch size")
         ("guided_output_decay", po::value<float>(&(opts->guided_output_decay))->default_value(1.0), "batch size")
         ("epochs", po::value<unsigned int>(&(opts->epochs))->default_value(20), "batch size")

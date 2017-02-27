@@ -225,7 +225,7 @@ namespace s2s {
         unsigned int batch_size = 0;
         for(unsigned int sid = 0; sid < max_batch_size && sid + index < vec_input.size(); sid++){
             batch_size++;
-            unsigned int cur_len = vec_input.at(sid + index).size();
+            unsigned int cur_len = vec_input.at(sents_order.at(sid + index)).size();
             if(cur_len > max_len){
                 max_len = cur_len;
             }

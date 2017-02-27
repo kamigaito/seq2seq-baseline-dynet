@@ -129,7 +129,7 @@ namespace s2s {
                 std::cerr << ",\tsource length: " << one_batch.src.size();
                 std::cerr << ",\ttarget length: " << one_batch.trg.size();
                 std::cerr << ",\ttime: " << time_used << " [s]" << std::endl;
-                std::cerr << "[epoch=" << trainer->epoch << " eta=" << trainer->eta << " clips=" << trainer->clips_since_status << " updates=" << trainer->updates_since_status << "] " << std::endl;
+                std::cerr << "[epoch=" << trainer->epoch << " eta=" << trainer->eta << " align_w=" << align_w << " clips=" << trainer->clips_since_status << " updates=" << trainer->updates_since_status << "] " << std::endl;
             }
             para_corp_train.reset_index();
             trainer->update_epoch();
@@ -164,8 +164,17 @@ namespace s2s {
                 }
             }
             trainer->eta = learning_rate;
-            if(epoch >= opts.guided_alignment_start_epoch){
-                align_w *= opts.guided_alignment_decay;
+            if(opts.guided_alignment == true){
+                if(epoch >= opts.guided_alignment_start_epoch){
+                    align_w *= opts.guided_alignment_decay;
+                }
+                if(epoch > opts.guided_alignment_start_epoch){
+                    if((epoch - opts.start_epoch) % opts.guided_alignment_decay_for_each == 0){
+                        align_w *= opts.guided_alignment_decay;
+                    }
+                }else if(epoch == opts.start_epoch){
+                    align_w *= opts.guided_alignment_decay;
+                }
             }
         }
     }
