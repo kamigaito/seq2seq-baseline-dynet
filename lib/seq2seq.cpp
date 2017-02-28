@@ -166,10 +166,10 @@ namespace s2s {
             trainer->eta = learning_rate;
             if(opts.guided_alignment == true){
                 if(epoch > opts.guided_alignment_start_epoch){
-                    if((epoch - opts.start_epoch) % opts.guided_alignment_decay_for_each == 0){
+                    if((epoch - opts.guided_alignment_start_epoch) % opts.guided_alignment_decay_for_each == 0){
                         align_w *= opts.guided_alignment_decay;
                     }
-                }else if(epoch == opts.start_epoch){
+                }else if(epoch == opts.guided_alignment_start_epoch){
                     align_w *= opts.guided_alignment_decay;
                 }
             }
