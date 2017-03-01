@@ -28,10 +28,12 @@ namespace s2s {
         std::vector<unsigned int> source_start_id;
         std::vector<unsigned int> source_end_id;
         std::vector<unsigned int> source_unk_id;
+        std::vector<unsigned int> source_pad_id;
 
         unsigned int target_start_id;
         unsigned int target_end_id;
         unsigned int target_unk_id;
+        unsigned int target_pad_id;
 
         void set(const s2s_options &opts){
             // resize vectors
@@ -39,10 +41,12 @@ namespace s2s {
             source_start_id.resize(opts.enc_feature_vocab_size.size());
             source_end_id.resize(opts.enc_feature_vocab_size.size());
             source_unk_id.resize(opts.enc_feature_vocab_size.size());
+            source_pad_id.resize(opts.enc_feature_vocab_size.size());
             // set start and end of sentence id
             for(unsigned int feature_id = 0; feature_id < d_src.size(); feature_id++){
                 source_start_id[feature_id] = d_src[feature_id].convert(opts.start_symbol);
                 source_end_id[feature_id] = d_src[feature_id].convert(opts.end_symbol);
+                source_pad_id[feature_id] = d_src[feature_id].convert(opts.pad_symbol);
             }
             // constuct source dictionary
             std::cerr << "Reading source language training text from " << opts.srcfile << "...\n";
@@ -55,6 +59,7 @@ namespace s2s {
             // set start and end of sentence id
             target_start_id = d_trg.convert(opts.start_symbol);
             target_end_id = d_trg.convert(opts.end_symbol);
+            target_pad_id = d_trg.convert(opts.pad_symbol);
             // constuct target dictionary
             std::cerr << "Reading target language training text from " << opts.trgfile << "...\n";
             freq_cut_trg(opts.trgfile, d_trg, opts.unk_symbol, opts.dec_word_vocab_size);
@@ -70,6 +75,7 @@ namespace s2s {
             source_start_id.resize(opts.enc_feature_vocab_size.size());
             source_end_id.resize(opts.enc_feature_vocab_size.size());
             source_unk_id.resize(opts.enc_feature_vocab_size.size());
+            source_pad_id.resize(opts.enc_feature_vocab_size.size());
             for(unsigned int i=0; i < d_src.size(); i++){
                 std::string file_name = opts.rootdir + "/" + opts.dict_prefix + "src_" + to_string(i) + ".txt";
                 std::cerr << "Loading source dictionary from " << file_name << "...\n";
@@ -82,6 +88,7 @@ namespace s2s {
             for(unsigned int feature_id = 0; feature_id < d_src.size(); feature_id++){
                 source_start_id[feature_id] = d_src[feature_id].convert(opts.start_symbol);
                 source_end_id[feature_id] = d_src[feature_id].convert(opts.end_symbol);
+                source_pad_id[feature_id] = d_src[feature_id].convert(opts.pad_symbol);
             }
             std::string file_name = opts.rootdir + "/" + opts.dict_prefix + "trg.txt";
             std::cerr << "Loading target dictionary from " << file_name << "...\n";
@@ -92,6 +99,7 @@ namespace s2s {
             // set start and end of sentence id
             target_start_id = d_trg.convert(opts.start_symbol);
             target_end_id = d_trg.convert(opts.end_symbol);
+            target_pad_id = d_trg.convert(opts.pad_symbol);
         }
 
         void save(const s2s_options &opts){

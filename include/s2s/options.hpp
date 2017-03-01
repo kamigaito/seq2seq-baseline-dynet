@@ -64,6 +64,7 @@ namespace s2s {
         std::string start_symbol;
         std::string end_symbol;
         std::string unk_symbol;
+        std::string pad_symbol;
         unsigned int save_every;
         unsigned int print_every;
         unsigned int seed;
@@ -116,6 +117,7 @@ namespace s2s {
             start_symbol = "<s>";
             end_symbol = "</s>";
             unk_symbol = "<unk>";
+            pad_symbol = "<pad>";
             save_every = 1;
             print_every = 1;
             seed = 1;
@@ -156,6 +158,7 @@ private:
             ar & start_symbol;
             ar & end_symbol;
             ar & unk_symbol;
+            ar & pad_symbol;
             ar & save_every;
             ar & print_every;
             ar & seed;
@@ -211,6 +214,7 @@ private:
         ("start_symbol", po::value<std::string>(&(opts->start_symbol))->default_value("<s>"), "source train file")
         ("end_symbol", po::value<std::string>(&(opts->end_symbol))->default_value("</s>"), "source train file")
         ("unk_symbol", po::value<std::string>(&(opts->unk_symbol))->default_value("<unk>"), "source train file")
+        ("pad_symbol", po::value<std::string>(&(opts->pad_symbol))->default_value("<pad>"), "source train file")
         ("save_every", po::value<unsigned int>(&(opts->save_every))->default_value(1), "batch size")
         ("print_every", po::value<unsigned int>(&(opts->print_every))->default_value(1), "batch size")
         ("seed", po::value<unsigned int>(&(opts->seed))->default_value(0), "batch size");
