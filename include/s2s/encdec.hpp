@@ -95,7 +95,7 @@ public:
         }
         p_out_R = model.add_parameters({opts->dec_word_vocab_size, dec_feeding_size});
         p_out_bias = model.add_parameters({opts->dec_word_vocab_size});
-        p_Wa = model.add_parameters({opts->att_size, unsigned(opts->rnn_size * opts->num_layers)});
+        p_Wa = model.add_parameters({opts->att_size, opts->rnn_size});
         if(bi_enc){
             p_Ua = model.add_parameters({opts->att_size, unsigned(opts->rnn_size * 2)});
         }else{
@@ -235,7 +235,7 @@ public:
         
         dynet::expr::Expression input = concatenate(std::vector<dynet::expr::Expression>({i_x_t, i_feed}));
         dec_builder.add_input(pointer_prev, input);
-        dynet::expr::Expression i_h = concatenate(dec_builder.final_h());
+        dynet::expr::Expression i_h = dec_builder.h.back().back();
         dynet::expr::Expression i_wah = i_Wa * i_h;
         dynet::expr::Expression i_Wah = concatenate_cols(std::vector<dynet::expr::Expression>(slen, i_wah));
         dynet::expr::Expression i_att_pred_t = transpose(tanh(i_Wah + i_Uahj)) * i_va;
