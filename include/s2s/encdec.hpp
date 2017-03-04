@@ -37,6 +37,7 @@ public:
     dynet::Parameter p_Wa;
     dynet::Parameter p_Ua;
     dynet::Parameter p_va;
+    dynet::Parameter p_Wch;
     dynet::Parameter p_out_R;
     dynet::Parameter p_out_bias;
     dynet::LSTMBuilder dec_builder;
@@ -45,6 +46,7 @@ public:
     bool rev_enc;
     bool bi_enc;
     bool dec_feed_hidden;
+    bool additional_output_layer;
     float dropout_rate;
 
     unsigned int slen;
@@ -54,6 +56,7 @@ public:
         rev_enc = opts->rev_enc;
         bi_enc = opts->bi_enc;
         dec_feed_hidden = opts->dec_feed_hidden;
+        additional_output_layer = opts->additional_output_layer;
         dropout_rate = opts->dropout_rate;
 
         unsigned int num_layers = opts->num_layers;
@@ -93,6 +96,7 @@ public:
                 dec_feeding_size = opts->rnn_size * 1;
             }
         }
+        p_Wch = model.add_parameters({dec_feeding_size, dec_feeding_size});
         p_out_R = model.add_parameters({opts->dec_word_vocab_size, dec_feeding_size});
         p_out_bias = model.add_parameters({opts->dec_word_vocab_size});
         p_Wa = model.add_parameters({opts->att_size, opts->rnn_size});
@@ -246,19 +250,28 @@ public:
 
     std::vector<dynet::expr::Expression> decoder_output(dynet::ComputationGraph& cg, const dynet::expr::Expression i_att_pred_t, const dynet::expr::Expression i_h_enc){
 
-        dynet::expr::Expression i_out_R = parameter(cg,p_out_R);
-        dynet::expr::Expression i_out_bias = parameter(cg,p_out_bias);
+        dynet::expr::Expression i_out_R = parameter(cg, p_out_R);
+        dynet::expr::Expression i_out_bias = parameter(cg, p_out_bias);
         
         dynet::expr::Expression i_alpha_t = softmax(i_att_pred_t);
         dynet::expr::Expression i_c_t = i_h_enc * i_alpha_t;
         dynet::expr::Expression i_feed_next;
         if(dec_feed_hidden){
-            i_feed_next = concatenate(std::vector<Expression>({dec_builder.h.back().back(), i_c_t})); 
+            if(additional_output_layer){
+                dynet::expr::Expression i_Wch = parameter(cg, p_Wch);
+                i_feed_next = tanh(i_Wch * concatenate(std::vector<Expression>({dec_builder.h.back().back(), i_c_t}))); 
+            }else{
+                i_feed_next = concatenate(std::vector<Expression>({dec_builder.h.back().back(), i_c_t})); 
+            }
         }else{
-            i_feed_next = i_c_t; 
+            if(additional_output_layer){
+                dynet::expr::Expression i_Wch = parameter(cg, p_Wch);
+                i_feed_next = tanh(i_Wch * i_c_t); 
+            }else{
+                i_feed_next = i_c_t;
+            }
         }
         dynet::expr::Expression i_out_pred_t = i_out_bias + i_out_R * i_feed_next;
-        
         return std::vector<dynet::expr::Expression>({i_out_pred_t, i_feed_next});
 
     }
@@ -301,6 +314,8 @@ private:
         ar & fwd_enc_builder;
         ar & rev_enc;
         ar & bi_enc;
+        ar & dec_feed_hidden;
+        ar & additional_output_layer;
         ar & dropout_rate;
     }
  
