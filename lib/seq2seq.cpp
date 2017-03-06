@@ -84,6 +84,7 @@ namespace s2s {
             unsigned int bid = 0;
             while(para_corp_train.next_batch_para(one_batch, opts.max_batch_train, dicts)){
                 bid++;
+                one_batch.drop_word(dicts, opts);
                 auto chrono_start = std::chrono::system_clock::now();
                 dynet::ComputationGraph cg;
                 std::vector<dynet::expr::Expression> errs_att;
