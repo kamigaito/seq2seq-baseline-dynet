@@ -161,7 +161,12 @@ namespace s2s {
                 for(unsigned int s_index = 0; s_index < src.size(); s_index++){
                     for(unsigned int b_id = 0; b_id < src.at(s_index).at(0).size(); b_id++){
                         unsigned int w_id = src.at(s_index).at(0).at(b_id);
-                        if(w_id != d.source_start_id.at(0) && w_id != d.source_end_id.at(0) && w_id != d.source_unk_id.at(0) && d.source_pad_id.at(0)){
+                        if(
+                            w_id != d.source_start_id.at(0) 
+                            && w_id != d.source_end_id.at(0) 
+                            && w_id != d.source_unk_id.at(0) 
+                            && w_id != d.source_pad_id.at(0)
+                        ){
                             float alpha = opts.drop_word_alpha;
                             float drop_prob = alpha / (alpha + (float)(d.word_freq[w_id]));
                             if(prob(mt) < drop_prob){
