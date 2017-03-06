@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <type_traits>
+#include <random>
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
@@ -30,6 +31,8 @@ namespace s2s {
         std::vector<unsigned int> source_unk_id;
         std::vector<unsigned int> source_pad_id;
 
+        std::vector<unsigned int> word_freq;
+
         unsigned int target_start_id;
         unsigned int target_end_id;
         unsigned int target_unk_id;
@@ -50,7 +53,7 @@ namespace s2s {
             }
             // constuct source dictionary
             std::cerr << "Reading source language training text from " << opts.srcfile << "...\n";
-            freq_cut_src(opts.srcfile, d_src, opts.unk_symbol, opts.enc_feature_vocab_size);
+            freq_cut_src(opts.srcfile, d_src, word_freq, opts.unk_symbol, opts.enc_feature_vocab_size);
             // set unknown id
             for(unsigned int feature_id = 0; feature_id < d_src.size(); feature_id++){
                 source_unk_id[feature_id] = d_src[feature_id].convert(opts.unk_symbol);
@@ -126,7 +129,9 @@ namespace s2s {
         std::vector<std::vector<std::vector<unsigned int> > > src;
         std::vector<std::vector<unsigned int> > trg;
         std::vector<std::vector<unsigned int> > align;
-        batch(){}
+        std::random_device rd;
+        std::mt19937 mt;
+        batch() : rd(), mt(rd()) {}
         void set(
               const std::vector<unsigned int> sents_order,
               const unsigned int index,
@@ -148,6 +153,24 @@ namespace s2s {
               const dicts& d
         ){
             src = src2batch(sents_order, index, batch_size, src_input, d.source_end_id);
+        }
+        // Kiperwasser and Goldberg 2016
+        void drop_word(const dicts& d, const s2s_options &opts){
+            if(opts.drop_word_alpha > 0.0){
+                std::uniform_real_distribution<float> prob(0.0, 1.0);
+                for(unsigned int s_index = 0; s_index < src.size(); s_index++){
+                    for(unsigned int b_id = 0; b_id < src.at(s_index).at(0).size(); b_id++){
+                        unsigned int w_id = src.at(s_index).at(0).at(b_id);
+                        if(w_id != d.source_start_id.at(0) && w_id != d.source_end_id.at(0) && w_id != d.source_unk_id.at(0) && d.source_pad_id.at(0)){
+                            float alpha = opts.drop_word_alpha;
+                            float drop_prob = alpha / (alpha + (float)(d.word_freq[w_id]));
+                            if(prob(mt) < drop_prob){
+                                src[s_index][0][b_id] = d.source_unk_id.at(0);
+                            }
+                        }
+                    }
+                }
+            }
         }
     };
 

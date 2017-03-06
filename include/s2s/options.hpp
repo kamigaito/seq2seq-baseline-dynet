@@ -59,6 +59,7 @@ namespace s2s {
         float dropout_rate;
         float lr_decay;
         float clip_threshold;
+        float drop_word_alpha;
         unsigned int max_batch_train;
         unsigned int max_batch_pred;
         unsigned int max_length;
@@ -113,6 +114,7 @@ namespace s2s {
             dropout_rate = 0.5;
             lr_decay = 1.0;
             clip_threshold = 5.0;
+            drop_word_alpha = 0.0;
             max_batch_train = 32;
             max_batch_pred = 32;
             max_length = 300;
@@ -157,6 +159,7 @@ private:
             ar & lr_decay;
             ar & clip_threshold;
             ar & clipping_enabled;
+            ar & drop_word_alpha;
             ar & start_symbol;
             ar & end_symbol;
             ar & unk_symbol;
@@ -211,6 +214,7 @@ private:
         ("dropout_rate", po::value<float>(&(opts->dropout_rate))->default_value(0.5), "batch size")
         ("lr_decay", po::value<float>(&(opts->lr_decay))->default_value(1.0), "batch size")
         ("clip_threshold", po::value<float>(&(opts->clip_threshold))->default_value(5.0), "batch size")
+        ("drop_word_alpha", po::value<float>(&(opts->drop_word_alpha))->default_value(0.0), "batch size")
         ("max_batch_train", po::value<unsigned int>(&(opts->max_batch_train))->default_value(32), "batch size")
         ("max_batch_pred", po::value<unsigned int>(&(opts->max_batch_pred))->default_value(1), "batch size")
         ("max_length", po::value<unsigned int>(&(opts->max_length))->default_value(300), "batch size")

@@ -19,7 +19,7 @@
 
 namespace s2s {
 
-    void freq_cut_src(const std::string file_path, std::vector<dynet::Dict>& d, const std::string unk_symbol, const std::vector<unsigned int>& vec_vocab_size){
+    void freq_cut_src(const std::string file_path, std::vector<dynet::Dict>& d, std::vector<unsigned int>& word_freq, const std::string unk_symbol, const std::vector<unsigned int>& vec_vocab_size){
         ifstream in(file_path);
         assert(in);
         std::vector<std::map<std::string, unsigned int> > vec_str_freq;
@@ -58,6 +58,10 @@ namespace s2s {
         for(unsigned int feature_id = 0; feature_id < vec_vocab_size.size(); feature_id++){
             d[feature_id].freeze(); // no new word types allowed
             d[feature_id].set_unk(unk_symbol);
+        }
+        word_freq.resize(d.at(0).size());
+        for(auto& p1: vec_str_freq.at(0)){
+            word_freq[d.at(0).convert(p1.first)] = p1.second;
         }
     }
 
@@ -242,6 +246,7 @@ namespace s2s {
         }
         return col;
     }
+
 };
 
 #endif
