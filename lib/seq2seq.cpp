@@ -97,9 +97,9 @@ namespace s2s {
                     dynet::expr::Expression i_att_t = encdec->decoder_attention(cg, one_batch.trg[t], i_feed[t], i_enc[0]);
                     if(opts.guided_alignment == true){
                         for(unsigned int i = 0; i < one_batch.align.at(t).size(); i++){
-                            assert(0 <= one_batch.align.at(t).at(i) < one_batch.src.size());
+                            assert(0 <= one_batch.align.at(t+1).at(i) < one_batch.src.size());
                         }
-                        dynet::expr::Expression i_err = pickneglogsoftmax(i_att_t, one_batch.align.at(t));
+                        dynet::expr::Expression i_err = pickneglogsoftmax(i_att_t, one_batch.align.at(t+1));
                         errs_att.push_back(i_err);
                     }
                     std::vector<dynet::expr::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);
