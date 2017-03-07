@@ -52,6 +52,16 @@ namespace s2s {
                 osent_col.push_back(w_id);
             }
             osent.push_back(osent_col);
+            // end check
+            unsigned int num_end = 0;
+            for(const unsigned int w_id : osent_col){
+                if(w_id == d.target_end_id){
+                    num_end++;
+                }
+            }
+            if(num_end == osent_col.size()){
+                break;
+            }
         }
     }
 
