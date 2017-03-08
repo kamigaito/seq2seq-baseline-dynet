@@ -120,7 +120,7 @@ namespace s2s {
                 cg.incremental_forward(i_nerr_all);
                 cg.backward(i_nerr_all);
                 //cg.print_graphviz();
-                trainer->update(1.0 / double(one_batch.src.at(0).at(0).size()));
+                trainer->update();
                 auto chrono_end = std::chrono::system_clock::now();
                 auto time_used = (double)std::chrono::duration_cast<std::chrono::milliseconds>(chrono_end - chrono_start).count() / (double)1000;
                 std::cerr << "batch: " << bid;
