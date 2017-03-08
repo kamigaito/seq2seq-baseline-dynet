@@ -35,6 +35,7 @@ namespace s2s {
         bool shared_input;
         bool dec_feed_hidden;
         bool additional_output_layer;
+        bool additional_connect_layer;
         bool bi_enc;
         bool rev_enc;
         bool clipping_enabled;
@@ -103,6 +104,7 @@ namespace s2s {
             guided_output_decay = 1.0;
             dec_feed_hidden = false;
             additional_output_layer = false;
+            additional_connect_layer = false;
             bi_enc = true;
             rev_enc = true;
             clipping_enabled = true;
@@ -138,6 +140,7 @@ private:
             ar & shared_input;
             ar & dec_feed_hidden;
             ar & additional_output_layer;
+            ar & additional_connect_layer;
             ar & bi_enc;
             ar & rev_enc;
             ar & enc_feature_vec_size;
@@ -192,6 +195,7 @@ private:
         ("shared_input", po::value<bool>(&(opts->shared_input))->default_value(false), "batch size")
         ("dec_feed_hidden", po::value<bool>(&(opts->dec_feed_hidden))->default_value(false), "batch size")
         ("additional_output_layer", po::value<bool>(&(opts->additional_output_layer))->default_value(true), "batch size")
+        ("additional_connect_layer", po::value<bool>(&(opts->additional_connect_layer))->default_value(true), "batch size")
         ("bi_enc", po::value<bool>(&(opts->bi_enc))->default_value(true), "batch size")
         ("rev_enc", po::value<bool>(&(opts->rev_enc))->default_value(true), "batch size")
         ("clipping_enabled", po::value<bool>(&(opts->clipping_enabled))->default_value(true), "batch size")

@@ -47,6 +47,7 @@ public:
     bool bi_enc;
     bool dec_feed_hidden;
     bool additional_output_layer;
+    bool additional_connect_layer;
     float dropout_rate;
 
     unsigned int slen;
@@ -57,6 +58,7 @@ public:
         bi_enc = opts->bi_enc;
         dec_feed_hidden = opts->dec_feed_hidden;
         additional_output_layer = opts->additional_output_layer;
+        additional_connect_layer = opts->additional_connect_layer;
         dropout_rate = opts->dropout_rate;
 
         unsigned int num_layers = opts->num_layers;
@@ -211,13 +213,17 @@ public:
             vec_enc_final_state = fwd_enc_builder.final_s();
         }
         dec_builder.new_graph(cg);
-        std::vector<dynet::expr::Expression> vec_dec_init_state;
-        for (unsigned int i = 0; i < vec_enc_final_state.size(); i++){
-            dynet::expr::Expression i_dec_init_w = parameter(cg, p_dec_init_w[i]);
-            dynet::expr::Expression i_dec_init_bias = parameter(cg, p_dec_init_bias[i]);
-            vec_dec_init_state.push_back(tanh(i_dec_init_w * vec_enc_final_state[i]) + i_dec_init_bias);
+        if(additional_connect_layer){
+            std::vector<dynet::expr::Expression> vec_dec_init_state;
+            for (unsigned int i = 0; i < vec_enc_final_state.size(); i++){
+                dynet::expr::Expression i_dec_init_w = parameter(cg, p_dec_init_w[i]);
+                dynet::expr::Expression i_dec_init_bias = parameter(cg, p_dec_init_bias[i]);
+                vec_dec_init_state.push_back(tanh(i_dec_init_w * vec_enc_final_state[i]) + i_dec_init_bias);
+            }
+            dec_builder.start_new_sequence(vec_dec_init_state);
+        }else{
+            dec_builder.start_new_sequence(vec_enc_final_state);
         }
-        dec_builder.start_new_sequence(vec_dec_init_state);
         return std::vector<dynet::expr::Expression>({i_Uahj, i_h_enc});
     }
                 
@@ -316,6 +322,7 @@ private:
         ar & bi_enc;
         ar & dec_feed_hidden;
         ar & additional_output_layer;
+        ar & additional_connect_layer;
         ar & dropout_rate;
     }
  
