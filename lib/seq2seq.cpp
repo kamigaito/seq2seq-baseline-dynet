@@ -36,10 +36,10 @@ namespace s2s {
         s2s::parallel_corpus para_corp_train;
         s2s::parallel_corpus para_corp_dev;
         dicts.set(opts);
-        para_corp_train.load_src(opts.srcfile, dicts);
+        para_corp_train.load_src(opts.srcfile, opts.max_batch_train, dicts);
         para_corp_train.load_trg(opts.trgfile, dicts);
         para_corp_train.load_check();
-        para_corp_dev.load_src(opts.srcvalfile, dicts);
+        para_corp_dev.load_src(opts.srcvalfile, opts.max_batch_pred, dicts);
         para_corp_dev.load_trg(opts.trgvalfile, dicts);
         para_corp_dev.load_check();
         if(opts.guided_alignment == true){
@@ -77,9 +77,10 @@ namespace s2s {
         trainer->clipping_enabled = opts.clipping_enabled;
         unsigned int epoch = 0;
         float align_w = opts.guided_alignment_weight;
+        para_corp_train.shuffle_sent();
         while(epoch < opts.epochs){
             // train
-            para_corp_train.shuffle();
+            para_corp_train.shuffle_batch();
             batch one_batch;
             unsigned int bid = 0;
             while(para_corp_train.next_batch_para(one_batch, opts.max_batch_train, dicts)){

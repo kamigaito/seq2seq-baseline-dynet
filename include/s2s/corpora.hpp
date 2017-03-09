@@ -186,21 +186,27 @@ namespace s2s {
         std::vector<std::vector<std::vector<unsigned int> > > src;
         unsigned int index;
         std::vector<unsigned int> sents_order;
+        std::vector<unsigned int> batch_order;
 
         monoling_corpus(){
             index = 0;
         }
 
-        void load_src(const std::string srcfile, dicts &d){
+        void load_src(const std::string srcfile, const unsigned int max_batch_size, dicts &d){
             load_corpus_src(srcfile, d.source_start_id, d.source_end_id, d.d_src, src);
             sents_order.resize(src.size());
             std::iota(sents_order.begin(), sents_order.end(), 0);
+            batch_size = src.size() + (max_batch_size - 1) / max_batch_size;
+            batch_order.resize(max_batch_size);
+            for(unsigned int i = 0; i < batch_order.size(); i++){
+                batch_order[i] = i * max_batch_size;
+            }
         }
 
-        bool next_batch_mono(batch& batch_local, const unsigned int batch_size, dicts &d){
-            batch_local.set(sents_order, index, batch_size, src, d);
-            if(index < src.size()){
-                index += batch_local.src.at(0).at(0).size();
+        bool next_batch_mono(batch& batch_local, const unsigned int max_batch_size, dicts &d){
+            batch_local.set(sents_order, batch_order.at(index), max_batch_size, src, d);
+            if(index < batch_order.size()){
+                index++;
                 return true;
             }
             return false;
@@ -243,15 +249,20 @@ namespace s2s {
             }
         }
 
-        void shuffle(){
+        void shuffle_sent(){
             srand(unsigned(time(NULL)));
-            std::random_shuffle(sents_order.begin(),sents_order.end());
+            std::random_shuffle(sents_order.begin(), sents_order.end());
         }
 
-        bool next_batch_para(batch& batch_local, const unsigned int batch_size, dicts &d){
-            batch_local.set(sents_order, index, batch_size, src, trg, align, d);
-            if(index < src.size()){
-                index += batch_local.trg.at(0).size();
+        void shuffle_batch(){
+            srand(unsigned(time(NULL)));
+            std::random_shuffle(batch_order.begin(), batch_order.end());
+        }
+
+        bool next_batch_para(batch& batch_local, const unsigned int max_batch_size, dicts &d){
+            batch_local.set(sents_order, batch_order.at(index), max_batch_size, src, trg, align, d);
+            if(index < batch_order.size()){
+                index ++;
                 return true;
             }
             return false;
