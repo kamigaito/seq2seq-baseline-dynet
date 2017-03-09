@@ -77,10 +77,14 @@ namespace s2s {
         trainer->clipping_enabled = opts.clipping_enabled;
         unsigned int epoch = 0;
         float align_w = opts.guided_alignment_weight;
+        std::cerr << "shuffling the training sentences..."<< std::endl;
         para_corp_train.shuffle_sent();
+        std::cerr << "finished."<< std::endl;
         while(epoch < opts.epochs){
             // train
+            std::cerr << "shuffling the batches..."<< std::endl;
             para_corp_train.shuffle_batch();
+            std::cerr << "finished."<< std::endl;
             batch one_batch;
             unsigned int bid = 0;
             while(para_corp_train.next_batch_para(one_batch, opts.max_batch_train, dicts)){

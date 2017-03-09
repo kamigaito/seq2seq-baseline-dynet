@@ -196,7 +196,7 @@ namespace s2s {
             load_corpus_src(srcfile, d.source_start_id, d.source_end_id, d.d_src, src);
             sents_order.resize(src.size());
             std::iota(sents_order.begin(), sents_order.end(), 0);
-            unsigned int batch_size = src.size() + (max_batch_size - 1) / max_batch_size;
+            unsigned int batch_size = (src.size() + max_batch_size - 1) / max_batch_size;
             batch_order.resize(batch_size);
             for(unsigned int i = 0; i < batch_order.size(); i++){
                 batch_order[i] = i * max_batch_size;
@@ -262,7 +262,7 @@ namespace s2s {
         bool next_batch_para(batch& batch_local, const unsigned int max_batch_size, dicts &d){
             if(index < batch_order.size()){
                 batch_local.set(sents_order, batch_order.at(index), max_batch_size, src, trg, align, d);
-                index ++;
+                index++;
                 return true;
             }
             return false;
