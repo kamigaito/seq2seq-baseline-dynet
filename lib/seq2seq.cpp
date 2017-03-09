@@ -191,7 +191,7 @@ namespace s2s {
         model_in.close();
         // predict
         s2s::monoling_corpus mono_corp;
-        mono_corp.load_src(opts.srcfile, dicts);
+        mono_corp.load_src(opts.srcfile, opts.max_batch_pred, dicts);
         batch one_batch;
         ofstream predict_sents(opts.trgfile);
         encdec->disable_dropout();
