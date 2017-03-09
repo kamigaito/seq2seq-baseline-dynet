@@ -204,8 +204,8 @@ namespace s2s {
         }
 
         bool next_batch_mono(batch& batch_local, const unsigned int max_batch_size, dicts &d){
-            batch_local.set(sents_order, batch_order.at(index), max_batch_size, src, d);
             if(index < batch_order.size()){
+                batch_local.set(sents_order, batch_order.at(index), max_batch_size, src, d);
                 index++;
                 return true;
             }
@@ -260,8 +260,8 @@ namespace s2s {
         }
 
         bool next_batch_para(batch& batch_local, const unsigned int max_batch_size, dicts &d){
-            batch_local.set(sents_order, batch_order.at(index), max_batch_size, src, trg, align, d);
             if(index < batch_order.size()){
+                batch_local.set(sents_order, batch_order.at(index), max_batch_size, src, trg, align, d);
                 index ++;
                 return true;
             }
