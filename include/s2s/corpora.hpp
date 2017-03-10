@@ -249,14 +249,38 @@ namespace s2s {
             }
         }
 
-        void shuffle_sent(){
-            srand(unsigned(time(NULL)));
-            std::random_shuffle(sents_order.begin(), sents_order.end());
+        void shuffle_sent(const std::string shuffle_type){
+            if(shuffle_type == "random"){
+                srand(unsigned(time(NULL)));
+                std::random_shuffle(sents_order.begin(), sents_order.end());
+            }else if(shuffle_type == "sort"){
+                std::vector<std::pair<unsigned int, std::pair<unsigned int, unsigned int > > > vec_len(src.size());
+                for(unsigned int sid = 0; sid < src.size(); sid++){
+                    vec_len[sid].first = sid;
+                    vec_len[sid].second.first = src.at(sid).size();
+                    vec_len[sid].second.second = trg.at(sid).size();
+                }
+                CompareLength comp_len;
+                sort(vec_len.begin(), vec_len.end(), comp_len);
+                for(unsigned int sid = 0; sid < src.size(); sid++){
+                    sents_order[sid] = vec_len.at(sid).first;
+                }
+            }else if(shuffle_type == "default"){
+            }else{
+                std::cerr << "shuffle_type does not match." << std::endl;
+                assert(false);
+            }
         }
 
-        void shuffle_batch(){
-            srand(unsigned(time(NULL)));
-            std::random_shuffle(batch_order.begin(), batch_order.end());
+        void shuffle_batch(const std::string shuffle_type){
+            if(shuffle_type == "random"){
+                srand(unsigned(time(NULL)));
+                std::random_shuffle(batch_order.begin(), batch_order.end());
+            }else if(shuffle_type == "default"){
+            }else{
+                std::cerr << "shuffle_type does not match." << std::endl;
+                assert(false);
+            }
         }
 
         bool next_batch_para(batch& batch_local, const unsigned int max_batch_size, dicts &d){

@@ -68,6 +68,8 @@ namespace s2s {
         std::string end_symbol;
         std::string unk_symbol;
         std::string pad_symbol;
+        std::string shuffle_sent_type;
+        std::string shuffle_batch_type;
         unsigned int save_every;
         unsigned int print_every;
         unsigned int seed;
@@ -120,6 +122,8 @@ namespace s2s {
             max_batch_train = 32;
             max_batch_pred = 32;
             max_length = 300;
+            shuffle_sent_type = "default";
+            shuffle_batch_type = "default";
             start_symbol = "<s>";
             end_symbol = "</s>";
             unk_symbol = "<unk>";
@@ -163,6 +167,8 @@ private:
             ar & clip_threshold;
             ar & clipping_enabled;
             ar & drop_word_alpha;
+            ar & shuffle_sent_type;
+            ar & shuffle_batch_type;
             ar & start_symbol;
             ar & end_symbol;
             ar & unk_symbol;
@@ -226,6 +232,8 @@ private:
         ("end_symbol", po::value<std::string>(&(opts->end_symbol))->default_value("</s>"), "source train file")
         ("unk_symbol", po::value<std::string>(&(opts->unk_symbol))->default_value("<unk>"), "source train file")
         ("pad_symbol", po::value<std::string>(&(opts->pad_symbol))->default_value("<pad>"), "source train file")
+        ("shuffle_sent_type", po::value<std::string>(&(opts->shuffle_sent_type))->default_value("default"), "source train file")
+        ("shuffle_batch_type", po::value<std::string>(&(opts->shuffle_batch_type))->default_value("default"), "source train file")
         ("save_every", po::value<unsigned int>(&(opts->save_every))->default_value(1), "batch size")
         ("print_every", po::value<unsigned int>(&(opts->print_every))->default_value(1), "batch size")
         ("seed", po::value<unsigned int>(&(opts->seed))->default_value(0), "batch size");

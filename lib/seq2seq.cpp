@@ -78,12 +78,12 @@ namespace s2s {
         unsigned int epoch = 0;
         float align_w = opts.guided_alignment_weight;
         std::cerr << "shuffling the training sentences..."<< std::endl;
-        para_corp_train.shuffle_sent();
+        para_corp_train.shuffle_sent(opts.shuffle_sent_type);
         std::cerr << "finished."<< std::endl;
         while(epoch < opts.epochs){
             // train
             std::cerr << "shuffling the batches..."<< std::endl;
-            para_corp_train.shuffle_batch();
+            para_corp_train.shuffle_batch(opts.shuffle_batch_type);
             std::cerr << "finished."<< std::endl;
             batch one_batch;
             unsigned int bid = 0;
