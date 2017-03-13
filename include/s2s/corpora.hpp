@@ -129,6 +129,8 @@ namespace s2s {
         std::vector<std::vector<std::vector<unsigned int> > > src;
         std::vector<std::vector<unsigned int> > trg;
         std::vector<std::vector<unsigned int> > align;
+        std::vector<unsigned int> len_src;
+        std::vector<unsigned int> len_trg;
         std::random_device rd;
         std::mt19937 mt;
         batch() : rd(), mt(rd()) {}
@@ -144,6 +146,8 @@ namespace s2s {
             src = src2batch(sents_order, index, batch_size, src_input, d.source_end_id);
             trg = trg2batch(sents_order, index, batch_size, trg_input, d.target_end_id);
             align = align2batch(sents_order, index, batch_size, align_input);
+            len_src = src2len(sents_order, index, batch_size, src_input);
+            len_trg = trg2len(sents_order, index, batch_size, trg_input);
         }
         void set(
               const std::vector<unsigned int> sents_order,
@@ -153,6 +157,7 @@ namespace s2s {
               const dicts& d
         ){
             src = src2batch(sents_order, index, batch_size, src_input, d.source_end_id);
+            len_src = src2len(sents_order, index, batch_size, src_input);
         }
         // Kiperwasser and Goldberg 2016
         void drop_word(const dicts& d, const s2s_options &opts){

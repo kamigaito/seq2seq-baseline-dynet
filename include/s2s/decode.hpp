@@ -65,6 +65,64 @@ namespace s2s {
         }
     }
 
+    void greedy_decode_vinyals(const batch& one_batch, std::vector<std::vector<unsigned int > >& osent, encoder_decoder *encdec, dicts &d, const s2s_options &opts){
+        //unsigned slen = sents.size();
+        dynet::ComputationGraph cg;
+        std::vector XX_count = one_batch.len_src;
+        osent.push_back(std::vector<unsigned int>(one_batch.src.at(0).at(0).size(), d.target_start_id));
+        std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
+        std::vector<dynet::expr::Expression> i_feed = encdec->init_feed(one_batch, cg);
+        // skip start and end symbols from count
+        for(auto& elem : one_batch.len_src){
+            elem =- 2;
+        }
+        for (int t = 0; t < opts.max_length; ++t) {
+            dynet::expr::Expression i_att_t = encdec->decoder_attention(cg, osent[t], i_feed[t], i_enc[0]);
+            std::vector<dynet::expr::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);
+            i_feed.push_back(i_out_t[1]);
+            Expression predict = softmax(i_out_t[0]);
+            std::vector<dynet::Tensor> results = cg.incremental_forward(predict).batch_elems();
+            std::vector<unsigned int> osent_col;
+            for(unsigned int i = 0; i < results.size(); i++){
+                auto output = as_vector(results.at(i));
+                int w_id = 0;
+                double w_prob = output[w_id];
+                for(unsigned int j=0; j<output.size(); j++){
+                    if(output[j] > w_prob){
+                        if(XX_count.at(j) > 0){
+                            if(j != d.target_end_id){
+                                w_id = j;
+                                w_prob = output[j];
+                            }
+                        }else{
+                            std::string w_str = d.d_trg.convert(w_id);
+                            if(j != d.d_trg[0].convert("XX") || w_str[0] != '('){
+                                w_id = j;
+                                w_prob = output[j];
+                            }
+                        }
+                    }
+                }
+                osent_col.push_back(w_id);
+                if(w_id == d.d_trg[0].convert("XX")){
+                    XX_count[i]--;
+                }
+            }
+            osent.push_back(osent_col);
+            // end check
+            unsigned int num_end = 0;
+            for(const unsigned int w_id : osent_col){
+                if(w_id == d.target_end_id){
+                    num_end++;
+                }
+            }
+            if(num_end == osent_col.size()){
+                break;
+            }
+        }
+    }
+
+
     void beam_decode(){
     }
 
