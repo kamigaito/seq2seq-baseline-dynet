@@ -89,14 +89,14 @@ namespace s2s {
                 double w_prob = output[w_id];
                 for(unsigned int j=0; j<output.size(); j++){
                     if(output[j] > w_prob){
-                        if(XX_count.at(j) > 0){
+                        if(XX_count.at(i) > 0){
                             if(j != d.target_end_id){
                                 w_id = j;
                                 w_prob = output[j];
                             }
                         }else{
                             std::string w_str = d.d_trg.convert(w_id);
-                            if(j != d.d_trg.convert("XX") || w_str[0] != '('){
+                            if(j != d.d_trg.convert("XX") && w_str[0] != '('){
                                 w_id = j;
                                 w_prob = output[j];
                             }
