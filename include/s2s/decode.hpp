@@ -68,12 +68,12 @@ namespace s2s {
     void greedy_decode_vinyals(const batch& one_batch, std::vector<std::vector<unsigned int > >& osent, encoder_decoder *encdec, dicts &d, const s2s_options &opts){
         //unsigned slen = sents.size();
         dynet::ComputationGraph cg;
-        std::vector XX_count = one_batch.len_src;
+        std::vector<unsigned int> XX_count = one_batch.len_src;
         osent.push_back(std::vector<unsigned int>(one_batch.src.at(0).at(0).size(), d.target_start_id));
         std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
         std::vector<dynet::expr::Expression> i_feed = encdec->init_feed(one_batch, cg);
         // skip start and end symbols from count
-        for(auto& elem : one_batch.len_src){
+        for(auto& elem : XX_count){
             elem =- 2;
         }
         for (int t = 0; t < opts.max_length; ++t) {
@@ -96,7 +96,7 @@ namespace s2s {
                             }
                         }else{
                             std::string w_str = d.d_trg.convert(w_id);
-                            if(j != d.d_trg[0].convert("XX") || w_str[0] != '('){
+                            if(j != d.d_trg.convert("XX") || w_str[0] != '('){
                                 w_id = j;
                                 w_prob = output[j];
                             }
@@ -104,7 +104,7 @@ namespace s2s {
                     }
                 }
                 osent_col.push_back(w_id);
-                if(w_id == d.d_trg[0].convert("XX")){
+                if(w_id == d.d_trg.convert("XX")){
                     XX_count[i]--;
                 }
             }
