@@ -70,6 +70,7 @@ namespace s2s {
         std::string pad_symbol;
         std::string shuffle_sent_type;
         std::string shuffle_batch_type;
+        std::string decoder_type;
         unsigned int save_every;
         unsigned int print_every;
         unsigned int seed;
@@ -124,6 +125,7 @@ namespace s2s {
             max_length = 300;
             shuffle_sent_type = "default";
             shuffle_batch_type = "default";
+            decoder_type = "greedy";
             start_symbol = "<s>";
             end_symbol = "</s>";
             unk_symbol = "<unk>";
@@ -234,6 +236,7 @@ private:
         ("pad_symbol", po::value<std::string>(&(opts->pad_symbol))->default_value("<pad>"), "source train file")
         ("shuffle_sent_type", po::value<std::string>(&(opts->shuffle_sent_type))->default_value("default"), "source train file")
         ("shuffle_batch_type", po::value<std::string>(&(opts->shuffle_batch_type))->default_value("default"), "source train file")
+        ("decoder_type", po::value<std::string>(&(opts->decoder_type))->default_value("greedy"), "source train file")
         ("save_every", po::value<unsigned int>(&(opts->save_every))->default_value(1), "batch size")
         ("print_every", po::value<unsigned int>(&(opts->print_every))->default_value(1), "batch size")
         ("seed", po::value<unsigned int>(&(opts->seed))->default_value(0), "batch size");

@@ -147,7 +147,14 @@ namespace s2s {
             ofstream dev_sents(opts.rootdir + "/dev_" + to_string(epoch) + ".txt");
             while(para_corp_dev.next_batch_para(one_batch, opts.max_batch_pred, dicts)){
                 std::vector<std::vector<unsigned int> > osent;
-                s2s::greedy_decode(one_batch, osent, encdec, dicts, opts);
+                if(opts.decoder_type == "greedy"){
+                    s2s::greedy_decode(one_batch, osent, encdec, dicts, opts);
+                }else if(opts.decoder_type == "greedy_vinyals"){
+                    s2s::greedy_decode_vinyals(one_batch, osent, encdec, dicts, opts);
+                }else{
+                    std::cerr << "Decoder does not exist !"<< std::endl;
+                    assert(false);
+                }
                 dev_sents << s2s::print_sents(osent, dicts);
             }
             dev_sents.close();
@@ -201,7 +208,14 @@ namespace s2s {
         encdec->disable_dropout();
         while(mono_corp.next_batch_mono(one_batch, opts.max_batch_pred, dicts)){
             std::vector<std::vector<unsigned int> > osent;
-            s2s::greedy_decode(one_batch, osent, encdec, dicts, opts);
+            if(opts.decoder_type == "greedy"){
+                s2s::greedy_decode(one_batch, osent, encdec, dicts, opts);
+            }else if(opts.decoder_type == "greedy_vinyals"){
+                s2s::greedy_decode_vinyals(one_batch, osent, encdec, dicts, opts);
+            }else{
+                std::cerr << "Decoder does not exist !"<< std::endl;
+                assert(false);
+            }
             predict_sents << s2s::print_sents(osent, dicts);
         }
         predict_sents.close();
