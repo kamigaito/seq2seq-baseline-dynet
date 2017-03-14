@@ -249,10 +249,7 @@ namespace s2s {
 
     std::vector<unsigned int > trg2len(const std::vector<unsigned int> sents_order, const unsigned int index, const unsigned int max_batch_size, const std::vector<std::vector<unsigned int> > &vec_input){
         std::vector<unsigned int > len_vec;
-        unsigned int max_len = 0;
-        unsigned int batch_size = 0;
         for(unsigned int sid = 0; sid < max_batch_size && sid + index < sents_order.size(); sid++){
-            batch_size++;
             unsigned int cur_len = vec_input.at(sents_order.at(sid + index)).size();
             len_vec.push_back(cur_len);
         }
@@ -261,9 +258,7 @@ namespace s2s {
 
     std::vector<unsigned int > src2len(const std::vector<unsigned int> sents_order, const unsigned int index, const unsigned int max_batch_size, const std::vector<std::vector<std::vector<unsigned int> > > &vec_input){
         std::vector<unsigned int > len_vec;
-        unsigned int batch_size = 0;
         for(unsigned int sid = 0; sid < max_batch_size && sid + index < sents_order.size(); sid++){
-            batch_size++;
             unsigned int cur_len = vec_input.at(sents_order.at(sid + index)).size();
             len_vec.push_back(cur_len);
         }
