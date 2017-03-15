@@ -40,9 +40,9 @@ public:
     dynet::Parameter p_Wch;
     dynet::Parameter p_out_R;
     dynet::Parameter p_out_bias;
-    dynet::LSTMBuilder dec_builder;
-    dynet::LSTMBuilder rev_enc_builder;
-    dynet::LSTMBuilder fwd_enc_builder;
+    dynet::VanillaLSTMBuilder dec_builder;
+    dynet::VanillaLSTMBuilder rev_enc_builder;
+    dynet::VanillaLSTMBuilder fwd_enc_builder;
     bool rev_enc;
     bool bi_enc;
     bool dec_feed_hidden;
@@ -109,7 +109,7 @@ public:
         }
         p_va = model.add_parameters({opts->att_size});
         if(bi_enc ==  true || rev_enc == true){
-            rev_enc_builder = dynet::LSTMBuilder(
+            rev_enc_builder = dynet::VanillaLSTMBuilder(
                 num_layers,
                 enc_input_size,
                 rnn_size,
@@ -117,14 +117,14 @@ public:
             );
         }
         if(bi_enc == true || rev_enc == false){
-            fwd_enc_builder = dynet::LSTMBuilder(
+            fwd_enc_builder = dynet::VanillaLSTMBuilder(
                 num_layers,
                 enc_input_size,
                 rnn_size,
                 model
             );
         }
-        dec_builder = dynet::LSTMBuilder(
+        dec_builder = dynet::VanillaLSTMBuilder(
             num_layers,
             (dec_feeding_size + opts->dec_word_vec_size),
             rnn_size,
@@ -145,14 +145,12 @@ public:
                 assert(one_batch.src.at(t_i).size() == p_feature_enc.size());
                 std::vector<dynet::expr::Expression> vec_phi(p_feature_enc.size());
                 for(unsigned int f_i = 0; f_i < p_feature_enc.size(); f_i++){
-                    /*
                     for(unsigned int b_i = 0; b_i < one_batch.src.at(t_i).at(f_i).size(); b_i++){
                         if(!(0 <= one_batch.src.at(t_i).at(f_i).at(b_i) && one_batch.src.at(t_i).at(f_i).at(b_i) < p_feature_enc.at(f_i).dim().d[1])){
                             std::cerr << "0 < " << one_batch.src.at(t_i).at(f_i).at(b_i) << " < " << p_feature_enc.at(f_i).dim().d[1] << std::endl;
                             assert(false);
                         }
                     }
-                    */
                     vec_phi[f_i] = lookup(cg, p_feature_enc[f_i], one_batch.src.at(t_i).at(f_i));
                 }
                 assert(one_batch.src.at(t_i).size() == vec_phi.size());
@@ -171,14 +169,12 @@ public:
                 assert(one_batch.src.at(t_i).size() == p_feature_enc.size());
                 std::vector<dynet::expr::Expression> vec_phi(p_feature_enc.size());
                 for(unsigned int f_i = 0; f_i < p_feature_enc.size(); f_i++){
-                    /*
                     for(unsigned int b_i = 0; b_i < one_batch.src.at(t_i).at(f_i).size(); b_i++){
                         if(!(0 <= one_batch.src.at(t_i).at(f_i).at(b_i) && one_batch.src.at(t_i).at(f_i).at(b_i) < p_feature_enc.at(f_i).dim().d[1])){
                             std::cerr << "0 < " << one_batch.src.at(t_i).at(f_i).at(b_i) << " < " << p_feature_enc.at(f_i).dim().d[1] << std::endl;
                             assert(false);
                         }
                     }
-                    */
                     vec_phi[f_i] = lookup(cg, p_feature_enc[f_i], one_batch.src.at(t_i).at(f_i));
                 }
                 assert(one_batch.src.at(t_i).size() == vec_phi.size());
@@ -294,12 +290,12 @@ public:
 
     void enable_dropout(){
         if(rev_enc == false || bi_enc == true){
-            fwd_enc_builder.set_dropout(dropout_rate, 0.f, 0.f);
+            fwd_enc_builder.set_dropout(dropout_rate, 0.f);
         }
         if(rev_enc == true || bi_enc == true){
-            rev_enc_builder.set_dropout(dropout_rate, 0.f, 0.f);
+            rev_enc_builder.set_dropout(dropout_rate, 0.f);
         }
-        dec_builder.set_dropout(dropout_rate, 0.f, 0.f);
+        dec_builder.set_dropout(dropout_rate, 0.f);
     }
 
 private:
