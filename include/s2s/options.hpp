@@ -57,8 +57,12 @@ namespace s2s {
         unsigned int decay_for_each;
         std::string optim;
         float learning_rate;
-        float dropout_rate;
         float lr_decay;
+        float dropout_rate_lstm_con;
+        float dropout_rate_enc_in;
+        float dropout_rate_enc_out;
+        float dropout_rate_dec_in;
+        float dropout_rate_dec_out;
         float clip_threshold;
         float drop_word_alpha;
         unsigned int max_batch_train;
@@ -116,7 +120,11 @@ namespace s2s {
             decay_for_each = 5;
             optim = "sgd";
             learning_rate = 1.0;
-            dropout_rate = 0.5;
+            dropout_rate_lstm_con = 0.3;
+            dropout_rate_enc_in = 0.3;
+            dropout_rate_enc_out = 0.3;
+            dropout_rate_dec_in = 0.3;
+            dropout_rate_dec_out = 0.3;
             lr_decay = 1.0;
             clip_threshold = 5.0;
             drop_word_alpha = 0.0;
@@ -164,7 +172,11 @@ private:
             ar & start_epoch;
             ar & optim;
             ar & learning_rate;
-            ar & dropout_rate;
+            ar & dropout_rate_lstm_con;
+            ar & dropout_rate_enc_in;
+            ar & dropout_rate_enc_out;
+            ar & dropout_rate_dec_in;
+            ar & dropout_rate_dec_out;
             ar & lr_decay;
             ar & clip_threshold;
             ar & clipping_enabled;
@@ -223,8 +235,12 @@ private:
         ("decay_for_each", po::value<unsigned int>(&(opts->decay_for_each))->default_value(5), "batch size")
         ("optim", po::value<std::string>(&(opts->optim))->default_value("sgd"), "source train file")
         ("learning_rate", po::value<float>(&(opts->learning_rate))->default_value(0.1), "batch size")
-        ("dropout_rate", po::value<float>(&(opts->dropout_rate))->default_value(0.5), "batch size")
         ("lr_decay", po::value<float>(&(opts->lr_decay))->default_value(1.0), "batch size")
+        ("dropout_rate_lstm_con", po::value<float>(&(opts->dropout_rate_lstm_con))->default_value(0.3), "batch size")
+        ("dropout_rate_enc_in", po::value<float>(&(opts->dropout_rate_enc_in))->default_value(0.3), "batch size")
+        ("dropout_rate_enc_out", po::value<float>(&(opts->dropout_rate_enc_out))->default_value(0.3), "batch size")
+        ("dropout_rate_dec_in", po::value<float>(&(opts->dropout_rate_dec_in))->default_value(0.3), "batch size")
+        ("dropout_rate_dec_out", po::value<float>(&(opts->dropout_rate_dec_out))->default_value(0.3), "batch size")
         ("clip_threshold", po::value<float>(&(opts->clip_threshold))->default_value(5.0), "batch size")
         ("drop_word_alpha", po::value<float>(&(opts->drop_word_alpha))->default_value(0.0), "batch size")
         ("max_batch_train", po::value<unsigned int>(&(opts->max_batch_train))->default_value(32), "batch size")
