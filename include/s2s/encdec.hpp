@@ -48,6 +48,7 @@ public:
     bool dec_feed_hidden;
     bool additional_output_layer;
     bool additional_connect_layer;
+    bool flag_drop_out;
     float dropout_rate;
 
     unsigned int slen;
@@ -65,6 +66,8 @@ public:
         unsigned int rnn_size = opts->rnn_size;
         unsigned int enc_input_size = 0;
         unsigned int dec_feeding_size = 0;
+
+        flag_drop_out = true;
 
         assert(opts->enc_feature_vocab_size.size() == opts->enc_feature_vec_size.size());
         for(unsigned int i = 0; i < opts->enc_feature_vec_size.size(); i++){
@@ -141,6 +144,9 @@ public:
         if(rev_enc == false || bi_enc == true){
             fwd_enc_builder.new_graph(cg);
             fwd_enc_builder.start_new_sequence();
+            if(flag_drop_out == true){
+                fwd_enc_builder.masks[0][0] = input(cg, {fwd_enc_builder.input_dim}, std::vector<float>(fwd_enc_builder.input_dim, 1.0));
+            }
             for (unsigned int t_i = 0; t_i < slen; ++t_i) {
                 assert(one_batch.src.at(t_i).size() == p_feature_enc.size());
                 std::vector<dynet::expr::Expression> vec_phi(p_feature_enc.size());
@@ -163,6 +169,9 @@ public:
         if(rev_enc == true || bi_enc == true){
             rev_enc_builder.new_graph(cg);
             rev_enc_builder.start_new_sequence();
+            if(flag_drop_out == true){
+                rev_enc_builder.masks[0][0] = input(cg, {rev_enc_builder.input_dim}, std::vector<float>(rev_enc_builder.input_dim, 1.0));
+            }
             for (unsigned int ind = 0; ind < slen; ++ind) {
                 unsigned int t_i = (slen - 1) - ind;
                 assert(t_i >= 0);
@@ -219,6 +228,9 @@ public:
             dec_builder.start_new_sequence(vec_dec_init_state);
         }else{
             dec_builder.start_new_sequence(vec_enc_final_state);
+        }
+        if(flag_drop_out == true){
+            dec_builder.masks[0][0] = input(cg, {dec_builder.input_dim}, std::vector<float>(dec_builder.input_dim, 1.0));
         }
         return std::vector<dynet::expr::Expression>({i_Uahj, i_h_enc});
     }
@@ -286,6 +298,7 @@ public:
             rev_enc_builder.disable_dropout();
         }
         dec_builder.disable_dropout();
+        flag_drop_out = false;
     }
 
     void enable_dropout(){
@@ -296,6 +309,7 @@ public:
             rev_enc_builder.set_dropout(dropout_rate, 0.f);
         }
         dec_builder.set_dropout(dropout_rate, 0.f);
+        flag_drop_out = true;
     }
 
 private:
