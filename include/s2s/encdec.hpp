@@ -168,7 +168,7 @@ public:
         if(rev_enc == false || bi_enc == true){
             fwd_enc_builder.new_graph(cg);
             fwd_enc_builder.start_new_sequence();
-            if(flag_drop_out == true){
+            if(flag_drop_out == true && dropout_rate_lstm_con > 0.0){
                 fwd_enc_builder.masks[0][0] = input(cg, {fwd_enc_builder.input_dim}, std::vector<float>(fwd_enc_builder.input_dim, 1.f));
             }
             for (unsigned int t_i = 0; t_i < slen; ++t_i) {
@@ -195,7 +195,7 @@ public:
         if(rev_enc == true || bi_enc == true){
             rev_enc_builder.new_graph(cg);
             rev_enc_builder.start_new_sequence();
-            if(flag_drop_out == true){
+            if(flag_drop_out == true && dropout_rate_lstm_con > 0.0){
                 rev_enc_builder.masks[0][0] = input(cg, {rev_enc_builder.input_dim}, std::vector<float>(rev_enc_builder.input_dim, 1.f));
             }
             for (unsigned int ind = 0; ind < slen; ++ind) {
@@ -257,7 +257,7 @@ public:
         }else{
             dec_builder.start_new_sequence(vec_enc_final_state);
         }
-        if(flag_drop_out == true){
+        if(flag_drop_out == true && dropout_rate_lstm_con > 0.0){
             dec_builder.masks[0][0] = input(cg, {dec_builder.input_dim}, std::vector<float>(dec_builder.input_dim, 1.f));
         }
         return std::vector<dynet::expr::Expression>({i_Uahj, i_h_enc});
