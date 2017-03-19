@@ -222,14 +222,14 @@ namespace s2s {
 
     std::vector<std::vector<unsigned int > > align2batch(const std::vector<unsigned int> sents_order, const unsigned int index, const unsigned int batch_size, const std::vector<std::vector<unsigned int> > &vec_input){
         unsigned int max_len = 0;
-        for(unsigned int sid = 0; sid < batch_size; sid++){
+        for(unsigned int sid = 0; sid < batch_size && sid < vec_input.size(); sid++){
             unsigned int cur_len = vec_input.at(sents_order.at(sid + index)).size();
             if(cur_len > max_len){
                 max_len = cur_len;
             }
         }
         std::vector<std::vector<unsigned int>> col(max_len, std::vector<unsigned int>(batch_size, 0));
-        for(unsigned int sid = 0; sid < batch_size; sid++){
+        for(unsigned int sid = 0; sid < batch_size && sid < vec_input.size(); sid++){
             for(unsigned int pos = 0; pos < max_len; pos++){
                 if(pos < vec_input.at(sents_order.at(sid + index)).size()){
                     col[pos][sid] = vec_input.at(sents_order.at(sid + index)).at(pos);
