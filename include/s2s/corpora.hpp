@@ -246,15 +246,23 @@ namespace s2s {
 
         void set_mono_batch_order(const unsigned int max_batch_size, const unsigned int src_tok_lim, const std::string batch_type){
             batch_order.clear();
-            if(batch_type == "fixed"){
-                unsigned int batch_size = (src.size() + max_batch_size - 1) / max_batch_size;
-                batch_order.resize(batch_size);
-                for(unsigned int i = 0; i < batch_order.size(); i++){
-                    batch_order[i].first = i * max_batch_size;
-                    if(i == batch_order.size() - 1){
-                        batch_order[i].second = src.size() % max_batch_size;
+            if(batch_type == "default"){
+                unsigned int batch_start = 0;
+                unsigned int batch_size = 0;
+                unsigned int src_tok = 0;
+                for(unsigned int sid = 0; sid < sents_order.size(); sid++){
+                    unsigned int cur_len_src = src.at(sents_order.at(sid)).size();
+                    if(batch_size + 1 <= max_batch_size && src_tok + cur_len_src <= src_tok_lim){
+                        src_tok += cur_len_src;
+                        batch_size++;
                     }else{
-                        batch_order[i].second = max_batch_size;
+                        batch_order.push_back(std::pair<unsigned int, unsigned int>(batch_start, batch_size));
+                        batch_start = sid;
+                        src_tok = cur_len_src;
+                        batch_size = 1;
+                    }
+                    if(sid == sents_order.size() - 1){
+                        batch_order.push_back(std::pair<unsigned int, unsigned int>(batch_start, batch_size));
                     }
                 }
             }else if(batch_type == "same_length"){
@@ -400,15 +408,27 @@ namespace s2s {
 
         void set_para_batch_order(const unsigned int max_batch_size, const unsigned int src_tok_lim, const unsigned int trg_tok_lim, const std::string batch_type){
             batch_order.clear();
-            if(batch_type == "fixed"){
-                unsigned int batch_size = (src.size() + max_batch_size - 1) / max_batch_size;
-                batch_order.resize(batch_size);
-                for(unsigned int i = 0; i < batch_order.size(); i++){
-                    batch_order[i].first = i * max_batch_size;
-                    if(i == batch_order.size() - 1){
-                        batch_order[i].second = src.size() % max_batch_size;
+            if(batch_type == "default"){
+                unsigned int batch_start = 0;
+                unsigned int batch_size = 0;
+                unsigned int src_tok = 0;
+                unsigned int trg_tok = 0;
+                for(unsigned int sid = 0; sid < sents_order.size(); sid++){
+                    unsigned int cur_len_src = src.at(sents_order.at(sid)).size();
+                    unsigned int cur_len_trg = trg.at(sents_order.at(sid)).size();
+                    if(batch_size + 1 <= max_batch_size && src_tok + cur_len_src <= src_tok_lim && trg_tok + cur_len_trg <= trg_tok_lim){
+                        src_tok += cur_len_src;
+                        trg_tok += cur_len_trg;
+                        batch_size++;
                     }else{
-                        batch_order[i].second = max_batch_size;
+                        batch_order.push_back(std::pair<unsigned int, unsigned int>(batch_start, batch_size));
+                        batch_start = sid;
+                        src_tok = cur_len_src;
+                        trg_tok = cur_len_trg;
+                        batch_size = 1;
+                    }
+                    if(sid == sents_order.size() - 1){
+                        batch_order.push_back(std::pair<unsigned int, unsigned int>(batch_start, batch_size));
                     }
                 }
             }else if(batch_type == "same_length"){
