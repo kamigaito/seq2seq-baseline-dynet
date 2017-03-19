@@ -179,13 +179,28 @@ namespace s2s {
             model_out.close();
             // preparation for next epoch
             epoch++;
-            if(epoch >= opts.start_epoch){
-                if(epoch > opts.start_epoch){
-                    if((epoch - opts.start_epoch) % opts.decay_for_each == 0){
+            if(epoch >= opts.sgd_start_epoch){
+                if(epoch > opts.sgd_start_decay){
+                    if((epoch - opts.sgd_start_decay) % opts.sgd_start_decay_for_each == 0){
+                        learning_rate *= opts.sgd_start_lr_decay;
+                    }
+                }else if(epoch == opts.sgd_start_epoch){
+                    delete(trainer);
+                    trainer = new dynet::SimpleSGDTrainer(model);
+                    learning_rate = opts.sgd_start_learning_rate;
+                    trainer->eta0 = learning_rate;
+                    trainer->eta_decay = 0.f;
+                    trainer->clipping_enabled = opts.clipping_enabled;
+                }
+            }else{
+                if(epoch >= opts.start_epoch){
+                    if(epoch > opts.start_epoch){
+                        if((epoch - opts.start_epoch) % opts.decay_for_each == 0){
+                            learning_rate *= opts.lr_decay;
+                        }
+                    }else if(epoch == opts.start_epoch){
                         learning_rate *= opts.lr_decay;
                     }
-                }else if(epoch == opts.start_epoch){
-                    learning_rate *= opts.lr_decay;
                 }
             }
             trainer->eta = learning_rate;

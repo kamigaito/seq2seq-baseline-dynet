@@ -55,9 +55,14 @@ namespace s2s {
         unsigned int epochs;
         unsigned int start_epoch;
         unsigned int decay_for_each;
+        unsigned int sgd_start_epoch;
+        unsigned int sgd_start_decay;
+        unsigned int sgd_start_decay_for_each;
         std::string optim;
         float learning_rate;
         float lr_decay;
+        float sgd_start_learning_rate;
+        float sgd_start_lr_decay;
         float dropout_rate_lstm_con;
         float dropout_rate_enc_in;
         float dropout_rate_enc_out;
@@ -126,14 +131,19 @@ namespace s2s {
             epochs = 20;
             start_epoch = 5;
             decay_for_each = 5;
-            optim = "sgd";
+            sgd_start_epoch = UINT_MAX;
+            sgd_start_decay = UINT_MAX;
+            sgd_start_decay_for_each = UINT_MAX;
             learning_rate = 1.0;
+            lr_decay = 1.0;
+            sgd_start_learning_rate = 0.1;
+            sgd_start_lr_decay = 1.0;
+            optim = "sgd";
             dropout_rate_lstm_con = 0.3;
             dropout_rate_enc_in = 0.3;
             dropout_rate_enc_out = 0.3;
             dropout_rate_dec_in = 0.3;
             dropout_rate_dec_out = 0.3;
-            lr_decay = 1.0;
             clip_threshold = 5.0;
             drop_word_alpha = 0.0;
             max_batch_train = 32;
@@ -247,7 +257,12 @@ private:
         ("epochs", po::value<unsigned int>(&(opts->epochs))->default_value(20), "batch size")
         ("start_epoch", po::value<unsigned int>(&(opts->start_epoch))->default_value(5), "batch size")
         ("decay_for_each", po::value<unsigned int>(&(opts->decay_for_each))->default_value(5), "batch size")
+        ("sgd_start_epoch", po::value<unsigned int>(&(opts->sgd_start_epoch))->default_value(UINT_MAX), "batch size")
+        ("sgd_start_decay", po::value<unsigned int>(&(opts->sgd_start_decay))->default_value(UINT_MAX), "batch size")
+        ("sgd_start_decay_for_each", po::value<unsigned int>(&(opts->sgd_start_decay_for_each))->default_value(UINT_MAX), "batch size")
         ("optim", po::value<std::string>(&(opts->optim))->default_value("sgd"), "source train file")
+        ("sgd_start_learning_rate", po::value<float>(&(opts->sgd_start_learning_rate))->default_value(0.1), "batch size")
+        ("sgd_start_lr_decay", po::value<float>(&(opts->sgd_start_lr_decay))->default_value(1.0), "batch size")
         ("learning_rate", po::value<float>(&(opts->learning_rate))->default_value(0.1), "batch size")
         ("lr_decay", po::value<float>(&(opts->lr_decay))->default_value(1.0), "batch size")
         ("dropout_rate_lstm_con", po::value<float>(&(opts->dropout_rate_lstm_con))->default_value(0.3), "batch size")
