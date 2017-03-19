@@ -68,12 +68,20 @@ namespace s2s {
         unsigned int max_batch_train;
         unsigned int max_batch_pred;
         unsigned int max_length;
+        unsigned int src_tok_lim_train;
+        unsigned int trg_tok_lim_train;
+        unsigned int src_tok_lim_pred;
+        unsigned int trg_tok_lim_pred;
         std::string start_symbol;
         std::string end_symbol;
         std::string unk_symbol;
         std::string pad_symbol;
-        std::string shuffle_sent_type;
-        std::string shuffle_batch_type;
+        std::string sort_sent_type_train;
+        std::string batch_type_train;
+        std::string shuffle_batch_type_train;
+        std::string sort_sent_type_pred;
+        std::string batch_type_pred;
+        std::string shuffle_batch_type_pred;
         std::string decoder_type;
         unsigned int save_every;
         unsigned int print_every;
@@ -131,8 +139,16 @@ namespace s2s {
             max_batch_train = 32;
             max_batch_pred = 32;
             max_length = 300;
-            shuffle_sent_type = "default";
-            shuffle_batch_type = "default";
+            src_tok_lim_train = 500;
+            trg_tok_lim_train = 500;
+            src_tok_lim_pred = 500;
+            trg_tok_lim_pred = 500;
+            sort_sent_type_train = "same_length";
+            batch_type_train = "default";
+            shuffle_batch_type_train = "default";
+            sort_sent_type_pred = "same_length";
+            batch_type_pred = "default";
+            shuffle_batch_type_pred = "default";
             decoder_type = "greedy";
             start_symbol = "<s>";
             end_symbol = "</s>";
@@ -181,8 +197,6 @@ private:
             ar & clip_threshold;
             ar & clipping_enabled;
             ar & drop_word_alpha;
-            ar & shuffle_sent_type;
-            ar & shuffle_batch_type;
             ar & start_symbol;
             ar & end_symbol;
             ar & unk_symbol;
@@ -250,8 +264,16 @@ private:
         ("end_symbol", po::value<std::string>(&(opts->end_symbol))->default_value("</s>"), "source train file")
         ("unk_symbol", po::value<std::string>(&(opts->unk_symbol))->default_value("<unk>"), "source train file")
         ("pad_symbol", po::value<std::string>(&(opts->pad_symbol))->default_value("<pad>"), "source train file")
-        ("shuffle_sent_type", po::value<std::string>(&(opts->shuffle_sent_type))->default_value("default"), "source train file")
-        ("shuffle_batch_type", po::value<std::string>(&(opts->shuffle_batch_type))->default_value("default"), "source train file")
+        ("src_tok_lim_train", po::value<unsigned int>(&(opts->src_tok_lim_train)), "batch size")
+        ("trg_tok_lim_train", po::value<unsigned int>(&(opts->trg_tok_lim_train)), "batch size")
+        ("src_tok_lim_pred", po::value<unsigned int>(&(opts->src_tok_lim_pred)), "batch size")
+        ("trg_tok_lim_pred", po::value<unsigned int>(&(opts->trg_tok_lim_pred)), "batch size")
+        ("sort_sent_type_train", po::value<std::string>(&(opts->sort_sent_type_train))->default_value("default"), "source train file")
+        ("batch_type_train", po::value<std::string>(&(opts->batch_type_train))->default_value("sent_length"), "source train file")
+        ("shuffle_batch_type_train", po::value<std::string>(&(opts->shuffle_batch_type_train))->default_value("default"), "source train file")
+        ("sort_sent_type_pred", po::value<std::string>(&(opts->sort_sent_type_pred))->default_value("default"), "source train file")
+        ("batch_type_pred", po::value<std::string>(&(opts->batch_type_pred))->default_value("sent_length"), "source train file")
+        ("shuffle_batch_type_pred", po::value<std::string>(&(opts->shuffle_batch_type_pred))->default_value("default"), "source train file")
         ("decoder_type", po::value<std::string>(&(opts->decoder_type))->default_value("greedy"), "source train file")
         ("save_every", po::value<unsigned int>(&(opts->save_every))->default_value(1), "batch size")
         ("print_every", po::value<unsigned int>(&(opts->print_every))->default_value(1), "batch size")

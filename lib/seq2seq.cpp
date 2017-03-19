@@ -36,10 +36,10 @@ namespace s2s {
         s2s::parallel_corpus para_corp_train;
         s2s::parallel_corpus para_corp_dev;
         dicts.set(opts);
-        para_corp_train.load_src(opts.srcfile, opts.max_batch_train, dicts);
+        para_corp_train.load_src(opts.srcfile, dicts);
         para_corp_train.load_trg(opts.trgfile, dicts);
         para_corp_train.load_check();
-        para_corp_dev.load_src(opts.srcvalfile, opts.max_batch_pred, dicts);
+        para_corp_dev.load_src(opts.srcvalfile, dicts);
         para_corp_dev.load_trg(opts.trgvalfile, dicts);
         para_corp_dev.load_check();
         if(opts.guided_alignment == true){
@@ -73,23 +73,21 @@ namespace s2s {
         trainer->eta0 = learning_rate;
         trainer->eta = learning_rate;
         trainer->eta_decay = 0.f;
-        trainer->clip_threshold = opts.clip_threshold;
         trainer->clipping_enabled = opts.clipping_enabled;
         unsigned int epoch = 0;
         float align_w = opts.guided_alignment_weight;
-        std::cerr << "shuffling the training sentences..."<< std::endl;
-        para_corp_train.shuffle_sent(opts.shuffle_sent_type);
-        std::cerr << "finished."<< std::endl;
         while(epoch < opts.epochs){
             // train
-            std::cerr << "shuffling the batches..."<< std::endl;
-            para_corp_train.shuffle_batch(opts.shuffle_batch_type);
-            std::cerr << "finished."<< std::endl;
+            para_corp_train.sort_para_sent(opts.sort_sent_type_train, opts.max_batch_train, opts.src_tok_lim_train, opts.trg_tok_lim_train);
+            para_corp_train.set_para_batch_order(opts.max_batch_train, opts.src_tok_lim_train, opts.trg_tok_lim_train, opts.batch_type_train);
+            para_corp_train.shuffle_batch(opts.shuffle_batch_type_train);
             batch one_batch;
             unsigned int bid = 0;
-            while(para_corp_train.next_batch_para(one_batch, opts.max_batch_train, dicts)){
+            while(para_corp_train.next_batch_para(one_batch, dicts)){
                 bid++;
                 one_batch.drop_word(dicts, opts);
+                trainer->clip_threshold = opts.clip_threshold * one_batch.src.at(0).at(0).size();
+                //
                 auto chrono_start = std::chrono::system_clock::now();
                 dynet::ComputationGraph cg;
                 std::vector<dynet::expr::Expression> errs_att;
@@ -143,9 +141,11 @@ namespace s2s {
             std::cerr << std::endl;
             // dev
             encdec->disable_dropout();
+            para_corp_dev.sort_para_sent(opts.sort_sent_type_pred, opts.max_batch_pred, opts.src_tok_lim_pred, opts.trg_tok_lim_pred);
+            para_corp_dev.set_para_batch_order(opts.max_batch_pred, opts.src_tok_lim_pred, opts.trg_tok_lim_pred, opts.batch_type_pred);
             std::cerr << "dev" << std::endl;
-            ofstream dev_sents(opts.rootdir + "/dev_" + to_string(epoch) + ".txt");
-            while(para_corp_dev.next_batch_para(one_batch, opts.max_batch_pred, dicts)){
+            std::vector<std::string> str_sents(para_corp_dev.src.size());
+            while(para_corp_dev.next_batch_para(one_batch, dicts)){
                 std::vector<std::vector<unsigned int> > osent;
                 if(opts.decoder_type == "greedy"){
                     s2s::greedy_decode(one_batch, osent, encdec, dicts, opts);
@@ -155,8 +155,20 @@ namespace s2s {
                     std::cerr << "Decoder does not exist !"<< std::endl;
                     assert(false);
                 }
-                dev_sents << s2s::print_sents(osent, dicts);
+                std::vector<std::string> str_batch_sents = s2s::print_sents(osent, dicts);
+                for(unsigned int i=0; i < str_batch_sents.size(); i++){
+                    // debug
+                    std::cerr << one_batch.sent_id.at(i) << std::endl;
+                    str_sents[one_batch.sent_id.at(i)] = str_batch_sents.at(i);
+                }
             }
+            std::string print_body = "";
+            for(const std::string str_sent : str_sents){
+                print_body += str_sent;
+                print_body += "\n";
+            }
+            ofstream dev_sents(opts.rootdir + "/dev_" + to_string(epoch) + ".txt");
+            dev_sents << print_body;
             dev_sents.close();
             para_corp_dev.reset_index();
             encdec->enable_dropout();
@@ -202,11 +214,13 @@ namespace s2s {
         model_in.close();
         // predict
         s2s::monoling_corpus mono_corp;
-        mono_corp.load_src(opts.srcfile, opts.max_batch_pred, dicts);
+        mono_corp.load_src(opts.srcfile, dicts);
         batch one_batch;
-        ofstream predict_sents(opts.trgfile);
         encdec->disable_dropout();
-        while(mono_corp.next_batch_mono(one_batch, opts.max_batch_pred, dicts)){
+        mono_corp.sort_mono_sent(opts.sort_sent_type_pred);
+        mono_corp.set_mono_batch_order(opts.max_batch_pred, opts.src_tok_lim_pred, opts.batch_type_pred);
+        std::vector<std::string> str_sents(mono_corp.src.size());
+        while(mono_corp.next_batch_mono(one_batch, dicts)){
             std::vector<std::vector<unsigned int> > osent;
             if(opts.decoder_type == "greedy"){
                 s2s::greedy_decode(one_batch, osent, encdec, dicts, opts);
@@ -216,9 +230,19 @@ namespace s2s {
                 std::cerr << "Decoder does not exist !"<< std::endl;
                 assert(false);
             }
-            predict_sents << s2s::print_sents(osent, dicts);
+            std::vector<std::string> str_batch_sents = s2s::print_sents(osent, dicts);
+            for(unsigned int i=0; i < str_batch_sents.size(); i++){
+                str_sents[one_batch.sent_id.at(i)] = str_batch_sents.at(i);
+            }
         }
-        predict_sents.close();
+        std::string print_body = "";
+        for(const std::string str_sent : str_sents){
+            print_body += str_sent;
+            print_body += "\n";
+        }
+        ofstream pred_sents(opts.trgfile);
+        pred_sents << print_body;
+        pred_sents.close();
     }
 
 };

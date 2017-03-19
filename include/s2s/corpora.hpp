@@ -126,6 +126,7 @@ namespace s2s {
 
     class batch {
         public:
+        std::vector<unsigned int> sent_id;
         std::vector<std::vector<std::vector<unsigned int> > > src;
         std::vector<std::vector<unsigned int> > trg;
         std::vector<std::vector<unsigned int> > align;
@@ -135,29 +136,37 @@ namespace s2s {
         std::mt19937 mt;
         batch() : rd(), mt(rd()) {}
         void set(
-              const std::vector<unsigned int> sents_order,
-              const unsigned int index,
-              const unsigned int batch_size,
-              const std::vector<std::vector<std::vector<unsigned int> > > &src_input,
-              const std::vector<std::vector<unsigned int> > &trg_input,
-              const std::vector<std::vector<unsigned int> > &align_input,
-              const dicts& d
+            const std::vector<unsigned int> sents_order,
+            const unsigned int index,
+            const unsigned int batch_size,
+            const std::vector<std::vector<std::vector<unsigned int> > > &src_input,
+            const std::vector<std::vector<unsigned int> > &trg_input,
+            const std::vector<std::vector<unsigned int> > &align_input,
+            const dicts& d
         ){
             src = src2batch(sents_order, index, batch_size, src_input, d.source_end_id);
             trg = trg2batch(sents_order, index, batch_size, trg_input, d.target_end_id);
             align = align2batch(sents_order, index, batch_size, align_input);
             len_src = src2len(sents_order, index, batch_size, src_input);
             len_trg = trg2len(sents_order, index, batch_size, trg_input);
+            sent_id.clear();
+            for(unsigned int sid = 0; sid < batch_size; sid++){
+                sent_id.push_back(sents_order.at(sid + index));
+            }
         }
         void set(
-              const std::vector<unsigned int> sents_order,
-              const unsigned int index,
-              const unsigned int batch_size,
-              const std::vector<std::vector<std::vector<unsigned int> > > &src_input,
-              const dicts& d
+            const std::vector<unsigned int> sents_order,
+            const unsigned int index,
+            const unsigned int batch_size,
+            const std::vector<std::vector<std::vector<unsigned int> > > &src_input,
+            const dicts& d
         ){
             src = src2batch(sents_order, index, batch_size, src_input, d.source_end_id);
             len_src = src2len(sents_order, index, batch_size, src_input);
+            sent_id.clear();
+            for(unsigned int sid = 0; sid < batch_size; sid++){
+                sent_id.push_back(sents_order.at(sid + index));
+            }
         }
         // Kiperwasser and Goldberg 2016
         void drop_word(const dicts& d, const s2s_options &opts){
@@ -191,34 +200,89 @@ namespace s2s {
         std::vector<std::vector<std::vector<unsigned int> > > src;
         unsigned int index;
         std::vector<unsigned int> sents_order;
-        std::vector<unsigned int> batch_order;
+        std::vector<std::pair<unsigned int, unsigned int> > batch_order;
 
         monoling_corpus(){
             index = 0;
         }
 
-        void load_src(const std::string srcfile, const unsigned int max_batch_size, dicts &d){
+        void load_src(const std::string srcfile, dicts &d){
             load_corpus_src(srcfile, d.source_start_id, d.source_end_id, d.d_src, src);
             sents_order.resize(src.size());
             std::iota(sents_order.begin(), sents_order.end(), 0);
-            unsigned int batch_size = (src.size() + max_batch_size - 1) / max_batch_size;
-            batch_order.resize(batch_size);
-            for(unsigned int i = 0; i < batch_order.size(); i++){
-                batch_order[i] = i * max_batch_size;
-            }
         }
 
-        bool next_batch_mono(batch& batch_local, const unsigned int max_batch_size, dicts &d){
+        bool next_batch_mono(batch& batch_local, dicts &d){
             if(index < batch_order.size()){
-                batch_local.set(sents_order, batch_order.at(index), max_batch_size, src, d);
+                batch_local.set(sents_order, batch_order.at(index).first, batch_order.at(index).second, src, d);
                 index++;
                 return true;
             }
             return false;
         }
+
         void reset_index(){
             index = 0;
         }
+
+        void sort_mono_sent(const std::string shuffle_type){
+            if(shuffle_type == "sort_default"){
+                std::vector<std::pair<unsigned int, std::pair<unsigned int, unsigned int > > > vec_len(src.size());
+                for(unsigned int sid = 0; sid < src.size(); sid++){
+                    vec_len[sid].first = sid;
+                    vec_len[sid].second.first = src.at(sid).size();
+                }
+                CompareLength comp_len;
+                sort(vec_len.begin(), vec_len.end(), comp_len);
+                for(unsigned int sid = 0; sid < src.size(); sid++){
+                    sents_order[sid] = vec_len.at(sid).first;
+                }
+            }else if(shuffle_type == "default"){
+            }else{
+                std::cerr << "shuffle_type does not match." << std::endl;
+                assert(false);
+            }
+        }
+
+        void set_mono_batch_order(const unsigned int max_batch_size, const unsigned int src_tok_lim, const std::string batch_type){
+            if(batch_type == "fixed"){
+                unsigned int batch_size = (src.size() + max_batch_size - 1) / max_batch_size;
+                batch_order.resize(batch_size);
+                for(unsigned int i = 0; i < batch_order.size(); i++){
+                    batch_order[i].first = i * max_batch_size;
+                    if(i == batch_order.size() - 1){
+                        batch_order[i].second = src.size() % max_batch_size;
+                    }else{
+                        batch_order[i].second = max_batch_size;
+                    }
+                }
+            }else if(batch_type == "same_length"){
+                unsigned int batch_start = 0;
+                unsigned int batch_size = 0;
+                unsigned int src_tok = 0;
+                unsigned int cur_len = src.at(sents_order.at(0)).size();
+                for(unsigned int sid = 0; sid < sents_order.size(); sid++){
+                    unsigned int cur_len_src = src.at(sents_order.at(sid)).size();
+                    if(cur_len_src == cur_len && batch_size + 1 <= max_batch_size && src_tok + cur_len_src <= src_tok_lim){
+                        src_tok += cur_len_src;
+                        batch_size++;
+                    }else{
+                        batch_order.push_back(std::pair<unsigned int, unsigned int>(batch_start, batch_size));
+                        batch_start = sid;
+                        cur_len = cur_len_src;
+                        src_tok = cur_len_src;
+                        batch_size = 1;
+                    }
+                    if(sid == sents_order.size() - 1){
+                        batch_order.push_back(std::pair<unsigned int, unsigned int>(batch_start, batch_size));
+                    }
+                }
+            }else{
+                std::cerr << "batch_type does not match." << std::endl;
+                assert(false);
+            }
+        }
+
     };
 
     class parallel_corpus : public monoling_corpus {
@@ -254,11 +318,11 @@ namespace s2s {
             }
         }
 
-        void shuffle_sent(const std::string shuffle_type){
+        void sort_para_sent(const std::string shuffle_type, const unsigned int max_batch_size, const unsigned int src_tok_lim, const unsigned int trg_tok_lim){
             if(shuffle_type == "random"){
                 srand(unsigned(time(NULL)));
                 std::random_shuffle(sents_order.begin(), sents_order.end());
-            }else if(shuffle_type == "sort"){
+            }else if(shuffle_type == "sort_default"){
                 std::vector<std::pair<unsigned int, std::pair<unsigned int, unsigned int > > > vec_len(src.size());
                 for(unsigned int sid = 0; sid < src.size(); sid++){
                     vec_len[sid].first = sid;
@@ -269,6 +333,42 @@ namespace s2s {
                 sort(vec_len.begin(), vec_len.end(), comp_len);
                 for(unsigned int sid = 0; sid < src.size(); sid++){
                     sents_order[sid] = vec_len.at(sid).first;
+                }
+            }else if(shuffle_type == "sort_random"){
+                std::vector<unsigned int> sents_order_local(src.size());
+                std::vector<std::pair<unsigned int, std::pair<unsigned int, unsigned int > > > vec_len(src.size());
+                for(unsigned int sid = 0; sid < src.size(); sid++){
+                    vec_len[sid].first = sid;
+                    vec_len[sid].second.first = src.at(sid).size();
+                    vec_len[sid].second.second = trg.at(sid).size();
+                }
+                CompareLength comp_len;
+                sort(vec_len.begin(), vec_len.end(), comp_len);
+                for(unsigned int sid = 0; sid < src.size(); sid++){
+                    sents_order_local[sid] = vec_len.at(sid).first;
+                }
+                sents_order.clear();
+                std::vector<unsigned int> vec_sents;
+                std::pair<unsigned int, unsigned int> cur_len(src.at(sents_order_local.at(0)).size(), trg.at(sents_order_local.at(0)).size());
+                for(unsigned int sid = 0; sid < sents_order_local.size(); sid++){
+                    unsigned int cur_len_src = src.at(sents_order_local.at(sid)).size();
+                    unsigned int cur_len_trg = trg.at(sents_order_local.at(sid)).size();
+                    if(cur_len_src == cur_len.first && cur_len_trg == cur_len.second){
+                        vec_sents.push_back(sents_order_local.at(sid));
+                    }else{
+                        cur_len.first = cur_len_src;
+                        cur_len.second = cur_len_trg;
+                        srand(unsigned(time(NULL)));
+                        std::random_shuffle(vec_sents.begin(), vec_sents.end());
+                        sents_order.insert(sents_order.end(), vec_sents.begin(), vec_sents.end());
+                        vec_sents.clear();
+                        vec_sents.push_back(sents_order_local.at(sid));
+                    }
+                    if(sid == sents_order_local.size() - 1){
+                        srand(unsigned(time(NULL)));
+                        std::random_shuffle(vec_sents.begin(), vec_sents.end());
+                        sents_order.insert(sents_order.end(), vec_sents.begin(), vec_sents.end());
+                    }
                 }
             }else if(shuffle_type == "default"){
             }else{
@@ -288,14 +388,59 @@ namespace s2s {
             }
         }
 
-        bool next_batch_para(batch& batch_local, const unsigned int max_batch_size, dicts &d){
+        bool next_batch_para(batch& batch_local, dicts &d){
             if(index < batch_order.size()){
-                batch_local.set(sents_order, batch_order.at(index), max_batch_size, src, trg, align, d);
+                batch_local.set(sents_order, batch_order.at(index).first, batch_order.at(index).second, src, trg, align, d);
                 index++;
                 return true;
             }
             return false;
         }
+
+        void set_para_batch_order(const unsigned int max_batch_size, const unsigned int src_tok_lim, const unsigned int trg_tok_lim, const std::string batch_type){
+            if(batch_type == "fixed"){
+                unsigned int batch_size = (src.size() + max_batch_size - 1) / max_batch_size;
+                batch_order.resize(batch_size);
+                for(unsigned int i = 0; i < batch_order.size(); i++){
+                    batch_order[i].first = i * max_batch_size;
+                    if(i == batch_order.size() - 1){
+                        batch_order[i].second = src.size() % max_batch_size;
+                    }else{
+                        batch_order[i].second = max_batch_size;
+                    }
+                }
+            }else if(batch_type == "same_length"){
+                unsigned int batch_start = 0;
+                unsigned int batch_size = 0;
+                unsigned int src_tok = 0;
+                unsigned int trg_tok = 0;
+                std::pair<unsigned int, unsigned int> cur_len(src.at(sents_order.at(0)).size(), trg.at(sents_order.at(0)).size());
+                for(unsigned int sid = 0; sid < sents_order.size(); sid++){
+                    unsigned int cur_len_src = src.at(sents_order.at(sid)).size();
+                    unsigned int cur_len_trg = trg.at(sents_order.at(sid)).size();
+                    if(cur_len_src == cur_len.first && cur_len_trg == cur_len.second && batch_size + 1 <= max_batch_size && src_tok + cur_len_src <= src_tok_lim && trg_tok + cur_len_trg <= trg_tok_lim){
+                        src_tok += cur_len_src;
+                        trg_tok += cur_len_trg;
+                        batch_size++;
+                    }else{
+                        batch_order.push_back(std::pair<unsigned int, unsigned int>(batch_start, batch_size));
+                        batch_start = sid;
+                        cur_len.first = cur_len_src;
+                        cur_len.second = cur_len_trg;
+                        src_tok = cur_len_src;
+                        trg_tok = cur_len_trg;
+                        batch_size = 1;
+                    }
+                    if(sid == sents_order.size() - 1){
+                        batch_order.push_back(std::pair<unsigned int, unsigned int>(batch_start, batch_size));
+                    }
+                }
+            }else{
+                std::cerr << "batch_type does not match." << std::endl;
+                assert(false);
+            }
+        }
+
     };
 };
 
