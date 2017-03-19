@@ -245,6 +245,7 @@ namespace s2s {
         }
 
         void set_mono_batch_order(const unsigned int max_batch_size, const unsigned int src_tok_lim, const std::string batch_type){
+            batch_order.clear();
             if(batch_type == "fixed"){
                 unsigned int batch_size = (src.size() + max_batch_size - 1) / max_batch_size;
                 batch_order.resize(batch_size);
@@ -398,6 +399,7 @@ namespace s2s {
         }
 
         void set_para_batch_order(const unsigned int max_batch_size, const unsigned int src_tok_lim, const unsigned int trg_tok_lim, const std::string batch_type){
+            batch_order.clear();
             if(batch_type == "fixed"){
                 unsigned int batch_size = (src.size() + max_batch_size - 1) / max_batch_size;
                 batch_order.resize(batch_size);
