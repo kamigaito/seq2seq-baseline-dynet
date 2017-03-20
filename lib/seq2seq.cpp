@@ -193,6 +193,7 @@ namespace s2s {
                     trainer->eta_decay = 0.f;
                     trainer->clipping_enabled = opts.clipping_enabled;
                     trainer->clip_threshold = opts.clip_threshold;
+                    trainer->epoch = epoch;
                 }
             }else{
                 if(epoch >= opts.start_epoch){
