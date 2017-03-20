@@ -74,6 +74,7 @@ namespace s2s {
         trainer->eta = learning_rate;
         trainer->eta_decay = 0.f;
         trainer->clipping_enabled = opts.clipping_enabled;
+        trainer->clip_threshold = opts.clip_threshold;
         unsigned int epoch = 0;
         float align_w = opts.guided_alignment_weight;
         while(epoch < opts.epochs){
@@ -86,7 +87,7 @@ namespace s2s {
             while(para_corp_train.next_batch_para(one_batch, dicts)){
                 bid++;
                 one_batch.drop_word(dicts, opts);
-                trainer->clip_threshold = opts.clip_threshold * one_batch.src.at(0).at(0).size();
+                unsigned int batch_size = one_batch.src.at(0).at(0).size();
                 //
                 auto chrono_start = std::chrono::system_clock::now();
                 dynet::ComputationGraph cg;
@@ -110,11 +111,11 @@ namespace s2s {
                     dynet::expr::Expression i_err = pickneglogsoftmax(i_out_t[0], one_batch.trg[t+1]);
                     errs_out.push_back(i_err);
                 }
-                dynet::expr::Expression i_nerr_out = sum_batches(sum(errs_out));
+                dynet::expr::Expression i_nerr_out = sum_batches(sum(errs_out)) / (float)(batch_size);
                 loss_out = as_scalar(cg.forward(i_nerr_out));
                 dynet::expr::Expression i_nerr_all;
                 if(opts.guided_alignment == true){
-                    dynet::expr::Expression i_nerr_att = sum_batches(sum(errs_att));
+                    dynet::expr::Expression i_nerr_att = sum_batches(sum(errs_att)) / (float)(batch_size);
                     loss_att = as_scalar(cg.incremental_forward(i_nerr_att));
                     i_nerr_all = i_nerr_out + align_w * i_nerr_att;
                 }else{
@@ -127,7 +128,7 @@ namespace s2s {
                 auto chrono_end = std::chrono::system_clock::now();
                 auto time_used = (double)std::chrono::duration_cast<std::chrono::milliseconds>(chrono_end - chrono_start).count() / (double)1000;
                 std::cerr << "batch: " << bid;
-                std::cerr << ",\tsize: " << one_batch.src.at(0).at(0).size();
+                std::cerr << ",\tsize: " << batch_size;
                 std::cerr << ",\toutput loss: " << loss_out;
                 std::cerr << ",\tattention loss: " << loss_att;
                 std::cerr << ",\tsource length: " << one_batch.src.size();
@@ -191,6 +192,7 @@ namespace s2s {
                     trainer->eta0 = learning_rate;
                     trainer->eta_decay = 0.f;
                     trainer->clipping_enabled = opts.clipping_enabled;
+                    trainer->clip_threshold = opts.clip_threshold;
                 }
             }else{
                 if(epoch >= opts.start_epoch){
