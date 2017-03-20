@@ -276,16 +276,14 @@ public:
     dynet::expr::Expression decoder_attention(dynet::ComputationGraph& cg, const std::vector<unsigned int> prev, const dynet::expr::Expression i_feed, const dynet::expr::Expression i_Uahj, const dynet::RNNPointer pointer_prev){
 
         dynet::expr::Expression i_x_t = lookup(cg, p_word_dec, prev);
-        // dropout
-        i_x_t = dynet::expr::cmult(i_x_t, dropout_mask_dec_in);
         dynet::expr::Expression i_va = parameter(cg, p_va);
         dynet::expr::Expression i_Wa = parameter(cg, p_Wa);
         
-        dynet::expr::Expression input = concatenate(std::vector<dynet::expr::Expression>({i_x_t, i_feed}));
-        dec_builder.add_input(pointer_prev, input);
-        dynet::expr::Expression i_h_dec = dec_builder.h.back().back();
+        dynet::expr::Expression i_dec_input = concatenate(std::vector<dynet::expr::Expression>({i_x_t, i_feed}));
         // dropout
-        i_h_dec = dynet::expr::cmult(i_h_dec, dropout_mask_dec_out);
+        i_dec_input = dynet::expr::cmult(i_dec_input, dropout_mask_dec_in);
+        dec_builder.add_input(pointer_prev, i_dec_input);
+        dynet::expr::Expression i_h_dec = dec_builder.h.back().back();
         dynet::expr::Expression i_wah = i_Wa * i_h_dec;
         dynet::expr::Expression i_Wah = concatenate_cols(std::vector<dynet::expr::Expression>(slen, i_wah));
         dynet::expr::Expression i_att_pred_t = transpose(tanh(i_Wah + i_Uahj)) * i_va;
@@ -302,8 +300,6 @@ public:
         dynet::expr::Expression i_alpha_t = softmax(i_att_pred_t);
         dynet::expr::Expression i_c_t = i_h_enc * i_alpha_t;
         dynet::expr::Expression i_h_dec = dec_builder.h.back().back();
-        // dropout
-        i_h_dec = dynet::expr::cmult(i_h_dec, dropout_mask_dec_out);
         dynet::expr::Expression i_feed_next;
         if(dec_feed_hidden){
             if(additional_output_layer){
@@ -386,12 +382,13 @@ public:
     }
 
     void set_dropout_mask_dec_in(dynet::ComputationGraph& cg){
+        unsigned int drop_out_dim = p_word_dec.dim().d[0] + p_out_R.dim().d[1];
         if(flag_drop_out == true && dropout_rate_dec_in > 0.f){
             float retention_rate = 1.f - dropout_rate_dec_in;
             float scale = 1.f / retention_rate;
-            dropout_mask_dec_in = dynet::expr::random_bernoulli(cg, dynet::Dim({p_word_dec.dim().d[0]}, 1), retention_rate, scale);
+            dropout_mask_dec_in = dynet::expr::random_bernoulli(cg, dynet::Dim({drop_out_dim}, 1), retention_rate, scale);
         }else{
-            dropout_mask_dec_in = input(cg, {p_word_dec.dim().d[0]}, std::vector<float>(p_word_dec.dim().d[0], 1.f));
+            dropout_mask_dec_in = input(cg, {drop_out_dim}, std::vector<float>(drop_out_dim, 1.f));
         }
     }
 
