@@ -65,9 +65,7 @@ namespace s2s {
         float sgd_start_lr_decay;
         float dropout_rate_lstm_con;
         float dropout_rate_enc_in;
-        float dropout_rate_enc_out;
         float dropout_rate_dec_in;
-        float dropout_rate_dec_out;
         float clip_threshold;
         float drop_word_alpha;
         unsigned int max_batch_train;
@@ -141,9 +139,7 @@ namespace s2s {
             optim = "sgd";
             dropout_rate_lstm_con = 0.3;
             dropout_rate_enc_in = 0.3;
-            dropout_rate_enc_out = 0.3;
             dropout_rate_dec_in = 0.3;
-            dropout_rate_dec_out = 0.3;
             clip_threshold = 5.0;
             drop_word_alpha = 0.0;
             max_batch_train = 32;
@@ -200,9 +196,7 @@ private:
             ar & learning_rate;
             ar & dropout_rate_lstm_con;
             ar & dropout_rate_enc_in;
-            ar & dropout_rate_enc_out;
             ar & dropout_rate_dec_in;
-            ar & dropout_rate_dec_out;
             ar & lr_decay;
             ar & clip_threshold;
             ar & clipping_enabled;
@@ -267,9 +261,7 @@ private:
         ("lr_decay", po::value<float>(&(opts->lr_decay))->default_value(1.0), "batch size")
         ("dropout_rate_lstm_con", po::value<float>(&(opts->dropout_rate_lstm_con))->default_value(0.3), "batch size")
         ("dropout_rate_enc_in", po::value<float>(&(opts->dropout_rate_enc_in))->default_value(0.3), "batch size")
-        ("dropout_rate_enc_out", po::value<float>(&(opts->dropout_rate_enc_out))->default_value(0.3), "batch size")
         ("dropout_rate_dec_in", po::value<float>(&(opts->dropout_rate_dec_in))->default_value(0.3), "batch size")
-        ("dropout_rate_dec_out", po::value<float>(&(opts->dropout_rate_dec_out))->default_value(0.3), "batch size")
         ("clip_threshold", po::value<float>(&(opts->clip_threshold))->default_value(5.0), "batch size")
         ("drop_word_alpha", po::value<float>(&(opts->drop_word_alpha))->default_value(0.0), "batch size")
         ("max_batch_train", po::value<unsigned int>(&(opts->max_batch_train))->default_value(32), "batch size")

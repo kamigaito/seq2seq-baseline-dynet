@@ -59,9 +59,7 @@ public:
     float dropout_rate_dec_out;
 
     dynet::expr::Expression dropout_mask_enc_in;
-    dynet::expr::Expression dropout_mask_enc_out;
     dynet::expr::Expression dropout_mask_dec_in;
-    dynet::expr::Expression dropout_mask_dec_out;
 
     unsigned int slen;
 
@@ -74,9 +72,7 @@ public:
         additional_connect_layer = opts->additional_connect_layer;
         dropout_rate_lstm_con = opts->dropout_rate_lstm_con;
         dropout_rate_enc_in = opts->dropout_rate_enc_in;
-        dropout_rate_enc_out = opts->dropout_rate_enc_out;
         dropout_rate_dec_in = opts->dropout_rate_dec_in;
-        dropout_rate_dec_out = opts->dropout_rate_dec_out;
 
         unsigned int num_layers = opts->num_layers;
         unsigned int rnn_size = opts->rnn_size;
@@ -127,22 +123,18 @@ public:
             p_Ua = model.add_parameters({opts->att_size, unsigned(opts->rnn_size * 1)});
         }
         p_va = model.add_parameters({opts->att_size});
-        if(bi_enc ==  true || rev_enc == true){
-            rev_enc_builder = dynet::VanillaLSTMBuilder(
-                num_layers,
-                enc_input_size,
-                rnn_size,
-                model
-            );
-        }
-        if(bi_enc == true || rev_enc == false){
-            fwd_enc_builder = dynet::VanillaLSTMBuilder(
-                num_layers,
-                enc_input_size,
-                rnn_size,
-                model
-            );
-        }
+        rev_enc_builder = dynet::VanillaLSTMBuilder(
+            num_layers,
+            enc_input_size,
+            rnn_size,
+            model
+        );
+        fwd_enc_builder = dynet::VanillaLSTMBuilder(
+            num_layers,
+            enc_input_size,
+            rnn_size,
+            model
+        );
         dec_builder = dynet::VanillaLSTMBuilder(
             num_layers,
             (dec_feeding_size + opts->dec_word_vec_size),
@@ -160,9 +152,7 @@ public:
         std::vector<dynet::expr::Expression> h_bi(slen);
 
         set_dropout_mask_enc_in(cg);
-        set_dropout_mask_enc_out(cg);
         set_dropout_mask_dec_in(cg);
-        set_dropout_mask_dec_out(cg);
 
         // forward encoder
         if(rev_enc == false || bi_enc == true){
@@ -364,41 +354,57 @@ public:
         }
     }
 
-    void set_dropout_mask_enc_out(dynet::ComputationGraph& cg){
-        unsigned int output_dim = 0;
-        if(bi_enc ==  true || rev_enc == true){
-            output_dim = rev_enc_builder.hid;
-        }
-        if(bi_enc == true || rev_enc == false){
-            output_dim = fwd_enc_builder.hid;
-        }
-        if(flag_drop_out == true && dropout_rate_enc_out > 0.f){
-            float retention_rate = 1.f - dropout_rate_enc_out;
-            float scale = 1.f / retention_rate;
-            dropout_mask_enc_out = dynet::expr::random_bernoulli(cg, dynet::Dim({output_dim}, 1), retention_rate, scale);
-        }else{
-            dropout_mask_enc_out = input(cg, {output_dim}, std::vector<float>(output_dim, 1.f));
-        }
-    }
-
     void set_dropout_mask_dec_in(dynet::ComputationGraph& cg){
-        unsigned int drop_out_dim = p_word_dec.dim().d[0] + p_out_R.dim().d[1];
+        unsigned int dim_w = p_word_dec.dim().d[0];
         if(flag_drop_out == true && dropout_rate_dec_in > 0.f){
             float retention_rate = 1.f - dropout_rate_dec_in;
             float scale = 1.f / retention_rate;
-            dropout_mask_dec_in = dynet::expr::random_bernoulli(cg, dynet::Dim({drop_out_dim}, 1), retention_rate, scale);
+            dynet::expr::Expression i_w = dynet::expr::random_bernoulli(cg, dynet::Dim({dim_w}, 1), retention_rate, scale);
+            if(dec_feed_hidden){
+                if(additional_output_layer){
+                    if(bi_enc == true){
+                        dynet::expr::Expression i_dec_enc_fwd_bwd = dynet::expr::random_bernoulli(cg, dynet::Dim({dec_builder.hid + fwd_enc_builder.hid + rev_enc_builder.hid}, 1), retention_rate, scale);
+                        dropout_mask_dec_in = concatenate(std::vector<dynet::expr::Expression>({i_w, i_dec_enc_fwd_bwd}));
+                    }else{
+                        dynet::expr::Expression i_dec_enc_fwd = dynet::expr::random_bernoulli(cg, dynet::Dim({dec_builder.hid + fwd_enc_builder.hid}, 1), retention_rate, scale);
+                        dropout_mask_dec_in = concatenate(std::vector<dynet::expr::Expression>({i_w, i_dec_enc_fwd}));
+                    }
+                }else{
+                    if(bi_enc == true){
+                        dynet::expr::Expression i_dec = dynet::expr::random_bernoulli(cg, dynet::Dim({dec_builder.hid}, 1), retention_rate, scale);
+                        dynet::expr::Expression i_enc_fwd = dynet::expr::random_bernoulli(cg, dynet::Dim({fwd_enc_builder.hid}, 1), retention_rate, scale);
+                        dynet::expr::Expression i_enc_bwd = dynet::expr::random_bernoulli(cg, dynet::Dim({rev_enc_builder.hid}, 1), retention_rate, scale);
+                        dropout_mask_dec_in = concatenate(std::vector<dynet::expr::Expression>({i_w, i_dec, i_enc_fwd, i_enc_bwd}));
+                    }else{
+                        dynet::expr::Expression i_dec = dynet::expr::random_bernoulli(cg, dynet::Dim({dec_builder.hid}, 1), retention_rate, scale);
+                        dynet::expr::Expression i_enc_fwd = dynet::expr::random_bernoulli(cg, dynet::Dim({fwd_enc_builder.hid}, 1), retention_rate, scale);
+                        dropout_mask_dec_in = concatenate(std::vector<dynet::expr::Expression>({i_w, i_dec, i_enc_fwd}));
+                    }
+                }
+            }else{
+                if(bi_enc == true){
+                    dynet::expr::Expression i_enc_fwd = dynet::expr::random_bernoulli(cg, dynet::Dim({fwd_enc_builder.hid}, 1), retention_rate, scale);
+                    dynet::expr::Expression i_enc_bwd = dynet::expr::random_bernoulli(cg, dynet::Dim({rev_enc_builder.hid}, 1), retention_rate, scale);
+                    dropout_mask_dec_in = concatenate(std::vector<dynet::expr::Expression>({i_w, i_enc_fwd, i_enc_bwd}));
+                }else{
+                    dynet::expr::Expression i_enc = dynet::expr::random_bernoulli(cg, dynet::Dim({fwd_enc_builder.hid}, 1), retention_rate, scale);
+                    dropout_mask_dec_in = concatenate(std::vector<dynet::expr::Expression>({i_w, i_enc}));
+                }
+            }
         }else{
-            dropout_mask_dec_in = input(cg, {drop_out_dim}, std::vector<float>(drop_out_dim, 1.f));
-        }
-    }
-
-    void set_dropout_mask_dec_out(dynet::ComputationGraph& cg){
-        if(flag_drop_out == true && dropout_rate_dec_out > 0.f){
-            float retention_rate = 1.f - dropout_rate_dec_out;
-            float scale = 1.f / retention_rate;
-            dropout_mask_dec_out = dynet::expr::random_bernoulli(cg, dynet::Dim({dec_builder.hid}, 1), retention_rate, scale);
-        }else{
-            dropout_mask_dec_out = input(cg, {dec_builder.hid}, std::vector<float>(dec_builder.hid, 1.f));
+            if(dec_feed_hidden){
+                if(bi_enc == true){
+                    dropout_mask_dec_in = input(cg, {dim_w + dec_builder.hid + fwd_enc_builder.hid + rev_enc_builder.hid}, std::vector<float>(dim_w + dec_builder.hid + fwd_enc_builder.hid + rev_enc_builder.hid, 1.f));
+                }else{
+                    dropout_mask_dec_in = input(cg, {dim_w + dec_builder.hid + fwd_enc_builder.hid}, std::vector<float>(dim_w + dec_builder.hid + fwd_enc_builder.hid, 1.f));
+                }
+            }else{
+                if(bi_enc == true){
+                    dropout_mask_dec_in = input(cg, {dim_w + fwd_enc_builder.hid + rev_enc_builder.hid}, std::vector<float>(dim_w + fwd_enc_builder.hid + rev_enc_builder.hid, 1.f));
+                }else{
+                    dropout_mask_dec_in = input(cg, {dim_w + fwd_enc_builder.hid}, std::vector<float>(dim_w + fwd_enc_builder.hid, 1.f));
+                }
+            }
         }
     }
 
