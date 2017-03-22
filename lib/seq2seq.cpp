@@ -31,6 +31,58 @@
 
 namespace s2s {
 
+    float train_one_batch(const bool is_train, const batch& one_batch, const s2s_options &opts, const float align_w, encoder_decoder* encdec, dynet::Trainer* trainer){
+        auto chrono_start = std::chrono::system_clock::now();
+        unsigned int batch_size = one_batch.src.at(0).at(0).size();
+        dynet::ComputationGraph cg;
+        std::vector<dynet::expr::Expression> errs_att;
+        std::vector<dynet::expr::Expression> errs_out;
+        float loss_att = 0.0;
+        float loss_out = 0.0;
+        std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
+        std::vector<dynet::expr::Expression> i_feed = encdec->init_feed(one_batch, cg);
+        for (unsigned int t = 0; t < one_batch.trg.size() - 1; ++t) {
+            dynet::expr::Expression i_att_t = encdec->decoder_attention(cg, one_batch.trg[t], i_feed[t], i_enc[0]);
+            if(opts.guided_alignment == true){
+                for(unsigned int i = 0; i < one_batch.align.at(t).size(); i++){
+                    assert(0 <= one_batch.align.at(t+1).at(i) < one_batch.src.size());
+                }
+                dynet::expr::Expression i_err = pickneglogsoftmax(i_att_t, one_batch.align.at(t+1));
+                errs_att.push_back(i_err);
+            }
+            std::vector<dynet::expr::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);
+            i_feed.push_back(i_out_t[1]);
+            dynet::expr::Expression i_err = pickneglogsoftmax(i_out_t[0], one_batch.trg[t+1]);
+            errs_out.push_back(i_err);
+        }
+        dynet::expr::Expression i_nerr_out = sum_batches(sum(errs_out)) / (float)(batch_size);
+        loss_out = as_scalar(cg.forward(i_nerr_out));
+        dynet::expr::Expression i_nerr_all;
+        if(opts.guided_alignment == true){
+            dynet::expr::Expression i_nerr_att = sum_batches(sum(errs_att)) / (float)(batch_size);
+            loss_att = as_scalar(cg.incremental_forward(i_nerr_att));
+            i_nerr_all = i_nerr_out + align_w * i_nerr_att;
+        }else{
+            i_nerr_all = i_nerr_out;
+        }
+        float loss_all = as_scalar(cg.incremental_forward(i_nerr_all));
+        if(is_train == true){
+            cg.backward(i_nerr_all);
+            //cg.print_graphviz();
+            trainer->update();
+        }
+        auto chrono_end = std::chrono::system_clock::now();
+        auto time_used = (double)std::chrono::duration_cast<std::chrono::milliseconds>(chrono_end - chrono_start).count() / (double)1000;
+        std::cerr << "batch_size: " << batch_size;
+        std::cerr << ",\toutput loss: " << loss_out;
+        std::cerr << ",\tattention loss: " << loss_att;
+        std::cerr << ",\tsource length: " << one_batch.src.size();
+        std::cerr << ",\ttarget length: " << one_batch.trg.size();
+        std::cerr << ",\ttime: " << time_used << " [s]" << std::endl;
+        std::cerr << "[epoch=" << trainer->epoch << " eta=" << trainer->eta << " align_w=" << align_w << " clips=" << trainer->clips_since_status << " updates=" << trainer->updates_since_status << "] " << std::endl;
+        return loss_all;
+    }
+
     void train(const s2s_options &opts){
         s2s::dicts dicts;
         s2s::parallel_corpus para_corp_train;
@@ -77,74 +129,37 @@ namespace s2s {
         trainer->clip_threshold = opts.clip_threshold;
         unsigned int epoch = 0;
         float align_w = opts.guided_alignment_weight;
+        float prev_loss = FLT_MAX;
+        float current_loss = 0.0;
         while(epoch < opts.epochs){
             // train
             para_corp_train.sort_para_sent(opts.sort_sent_type_train, opts.max_batch_train, opts.src_tok_lim_train, opts.trg_tok_lim_train);
             para_corp_train.set_para_batch_order(opts.max_batch_train, opts.src_tok_lim_train, opts.trg_tok_lim_train, opts.batch_type_train);
             para_corp_train.shuffle_batch(opts.shuffle_batch_type_train);
             batch one_batch;
-            unsigned int bid = 0;
             while(para_corp_train.next_batch_para(one_batch, dicts)){
-                bid++;
                 one_batch.drop_word(dicts, opts);
-                unsigned int batch_size = one_batch.src.at(0).at(0).size();
-                //
-                auto chrono_start = std::chrono::system_clock::now();
-                dynet::ComputationGraph cg;
-                std::vector<dynet::expr::Expression> errs_att;
-                std::vector<dynet::expr::Expression> errs_out;
-                float loss_att = 0.0;
-                float loss_out = 0.0;
-                std::vector<dynet::expr::Expression> i_enc = encdec->encoder(one_batch, cg);
-                std::vector<dynet::expr::Expression> i_feed = encdec->init_feed(one_batch, cg);
-                for (unsigned int t = 0; t < one_batch.trg.size() - 1; ++t) {
-                    dynet::expr::Expression i_att_t = encdec->decoder_attention(cg, one_batch.trg[t], i_feed[t], i_enc[0]);
-                    if(opts.guided_alignment == true){
-                        for(unsigned int i = 0; i < one_batch.align.at(t).size(); i++){
-                            assert(0 <= one_batch.align.at(t+1).at(i) < one_batch.src.size());
-                        }
-                        dynet::expr::Expression i_err = pickneglogsoftmax(i_att_t, one_batch.align.at(t+1));
-                        errs_att.push_back(i_err);
-                    }
-                    std::vector<dynet::expr::Expression> i_out_t = encdec->decoder_output(cg, i_att_t, i_enc[1]);
-                    i_feed.push_back(i_out_t[1]);
-                    dynet::expr::Expression i_err = pickneglogsoftmax(i_out_t[0], one_batch.trg[t+1]);
-                    errs_out.push_back(i_err);
-                }
-                dynet::expr::Expression i_nerr_out = sum_batches(sum(errs_out)) / (float)(batch_size);
-                loss_out = as_scalar(cg.forward(i_nerr_out));
-                dynet::expr::Expression i_nerr_all;
-                if(opts.guided_alignment == true){
-                    dynet::expr::Expression i_nerr_att = sum_batches(sum(errs_att)) / (float)(batch_size);
-                    loss_att = as_scalar(cg.incremental_forward(i_nerr_att));
-                    i_nerr_all = i_nerr_out + align_w * i_nerr_att;
-                }else{
-                    i_nerr_all = i_nerr_out;
-                }
-                cg.incremental_forward(i_nerr_all);
-                cg.backward(i_nerr_all);
-                //cg.print_graphviz();
-                trainer->update();
-                auto chrono_end = std::chrono::system_clock::now();
-                auto time_used = (double)std::chrono::duration_cast<std::chrono::milliseconds>(chrono_end - chrono_start).count() / (double)1000;
-                std::cerr << "batch: " << bid;
-                std::cerr << ",\tsize: " << batch_size;
-                std::cerr << ",\toutput loss: " << loss_out;
-                std::cerr << ",\tattention loss: " << loss_att;
-                std::cerr << ",\tsource length: " << one_batch.src.size();
-                std::cerr << ",\ttarget length: " << one_batch.trg.size();
-                std::cerr << ",\ttime: " << time_used << " [s]" << std::endl;
-                std::cerr << "[epoch=" << trainer->epoch << " eta=" << trainer->eta << " align_w=" << align_w << " clips=" << trainer->clips_since_status << " updates=" << trainer->updates_since_status << "] " << std::endl;
+                // train one batch
+                train_one_batch(true, one_batch, opts, align_w, encdec, trainer);
             }
             para_corp_train.reset_index();
             trainer->update_epoch();
             trainer->status();
             std::cerr << std::endl;
+
             // dev
+            std::cerr << "dev" << std::endl;
             encdec->disable_dropout();
             para_corp_dev.sort_para_sent(opts.sort_sent_type_pred, opts.max_batch_pred, opts.src_tok_lim_pred, opts.trg_tok_lim_pred);
             para_corp_dev.set_para_batch_order(opts.max_batch_pred, opts.src_tok_lim_pred, opts.trg_tok_lim_pred, opts.batch_type_pred);
-            std::cerr << "dev" << std::endl;
+            current_loss = 0.0;
+            while(para_corp_dev.next_batch_para(one_batch, dicts)){
+                // train one batch
+                current_loss += train_one_batch(true, one_batch, opts, align_w, encdec, trainer) * one_batch.src.at(0).at(0).size();
+            }
+            para_corp_train.reset_index();
+            std::cerr << "current loss: " << current_loss << ", preivous_loss: " << prev_loss << std::endl;
+            std::cerr << "dev_decode" << std::endl;
             std::vector<std::string> str_sents(para_corp_dev.src.size());
             while(para_corp_dev.next_batch_para(one_batch, dicts)){
                 std::vector<std::vector<unsigned int> > osent;
@@ -180,42 +195,49 @@ namespace s2s {
             model_out.close();
             // preparation for next epoch
             epoch++;
-            if(epoch >= opts.sgd_start_epoch){
-                if(epoch > opts.sgd_start_decay){
-                    if((epoch - opts.sgd_start_decay) % opts.sgd_start_decay_for_each == 0){
-                        learning_rate *= opts.sgd_start_lr_decay;
-                    }
-                }else if(epoch == opts.sgd_start_epoch){
-                    delete(trainer);
-                    trainer = new dynet::SimpleSGDTrainer(model);
-                    learning_rate = opts.sgd_start_learning_rate;
-                    trainer->eta0 = learning_rate;
-                    trainer->eta_decay = 0.f;
-                    trainer->clipping_enabled = opts.clipping_enabled;
-                    trainer->clip_threshold = opts.clip_threshold;
-                    trainer->epoch = epoch;
+            if(opts.lr_auto_decay == true){
+                if(current_loss > prev_loss){
+                    learning_rate *= opts.lr_decay;
                 }
             }else{
-                if(epoch >= opts.start_epoch){
-                    if(epoch > opts.start_epoch){
-                        if((epoch - opts.start_epoch) % opts.decay_for_each == 0){
+                if(epoch >= opts.sgd_start_epoch){
+                    if(epoch > opts.sgd_start_decay){
+                        if((epoch - opts.sgd_start_decay) % opts.sgd_start_decay_for_each == 0){
+                            learning_rate *= opts.sgd_start_lr_decay;
+                        }
+                    }else if(epoch == opts.sgd_start_epoch){
+                        delete(trainer);
+                        trainer = new dynet::SimpleSGDTrainer(model);
+                        learning_rate = opts.sgd_start_learning_rate;
+                        trainer->eta0 = learning_rate;
+                        trainer->eta_decay = 0.f;
+                        trainer->clipping_enabled = opts.clipping_enabled;
+                        trainer->clip_threshold = opts.clip_threshold;
+                        trainer->epoch = epoch;
+                    }
+                }else{
+                    if(epoch >= opts.start_epoch){
+                        if(epoch > opts.start_epoch){
+                            if((epoch - opts.start_epoch) % opts.decay_for_each == 0){
+                                learning_rate *= opts.lr_decay;
+                            }
+                        }else if(epoch == opts.start_epoch){
                             learning_rate *= opts.lr_decay;
                         }
-                    }else if(epoch == opts.start_epoch){
-                        learning_rate *= opts.lr_decay;
                     }
                 }
-            }
-            trainer->eta = learning_rate;
-            if(opts.guided_alignment == true){
-                if(epoch > opts.guided_alignment_start_epoch){
-                    if((epoch - opts.guided_alignment_start_epoch) % opts.guided_alignment_decay_for_each == 0){
+                trainer->eta = learning_rate;
+                if(opts.guided_alignment == true){
+                    if(epoch > opts.guided_alignment_start_epoch){
+                        if((epoch - opts.guided_alignment_start_epoch) % opts.guided_alignment_decay_for_each == 0){
+                            align_w *= opts.guided_alignment_decay;
+                        }
+                    }else if(epoch == opts.guided_alignment_start_epoch){
                         align_w *= opts.guided_alignment_decay;
                     }
-                }else if(epoch == opts.guided_alignment_start_epoch){
-                    align_w *= opts.guided_alignment_decay;
                 }
             }
+            prev_loss = current_loss;
         }
     }
 

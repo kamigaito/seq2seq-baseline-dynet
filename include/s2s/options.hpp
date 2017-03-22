@@ -59,6 +59,7 @@ namespace s2s {
         unsigned int sgd_start_decay;
         unsigned int sgd_start_decay_for_each;
         std::string optim;
+        bool lr_auto_decay;
         float learning_rate;
         float lr_decay;
         float sgd_start_learning_rate;
@@ -132,6 +133,7 @@ namespace s2s {
             sgd_start_epoch = UINT_MAX;
             sgd_start_decay = UINT_MAX;
             sgd_start_decay_for_each = UINT_MAX;
+            lr_auto_decay = false;
             learning_rate = 1.0;
             lr_decay = 1.0;
             sgd_start_learning_rate = 0.1;
@@ -257,6 +259,7 @@ private:
         ("optim", po::value<std::string>(&(opts->optim))->default_value("sgd"), "source train file")
         ("sgd_start_learning_rate", po::value<float>(&(opts->sgd_start_learning_rate))->default_value(0.1), "batch size")
         ("sgd_start_lr_decay", po::value<float>(&(opts->sgd_start_lr_decay))->default_value(1.0), "batch size")
+        ("lr_auto_decay", po::value<bool>(&(opts->lr_auto_decay))->default_value(false), "batch size")
         ("learning_rate", po::value<float>(&(opts->learning_rate))->default_value(0.1), "batch size")
         ("lr_decay", po::value<float>(&(opts->lr_decay))->default_value(1.0), "batch size")
         ("dropout_rate_lstm_con", po::value<float>(&(opts->dropout_rate_lstm_con))->default_value(0.3), "batch size")
