@@ -142,9 +142,6 @@ namespace s2s {
                 // train one batch
                 train_one_batch(true, one_batch, opts, align_w, encdec, trainer);
             }
-            para_corp_train.reset_index();
-            trainer->update_epoch();
-            trainer->status();
             std::cerr << std::endl;
 
             // dev
@@ -155,11 +152,14 @@ namespace s2s {
             current_loss = 0.0;
             while(para_corp_dev.next_batch_para(one_batch, dicts)){
                 // train one batch
-                current_loss += train_one_batch(true, one_batch, opts, align_w, encdec, trainer) * one_batch.src.at(0).at(0).size();
+                current_loss += train_one_batch(false, one_batch, opts, align_w, encdec, trainer) * one_batch.src.at(0).at(0).size();
             }
-            para_corp_train.reset_index();
             std::cerr << "current loss: " << current_loss << ", preivous_loss: " << prev_loss << std::endl;
             std::cerr << "dev_decode" << std::endl;
+            para_corp_train.reset_index();
+            para_corp_dev.reset_index();
+            trainer->update_epoch();
+            trainer->status();
             std::vector<std::string> str_sents(para_corp_dev.src.size());
             while(para_corp_dev.next_batch_para(one_batch, dicts)){
                 std::vector<std::vector<unsigned int> > osent;
