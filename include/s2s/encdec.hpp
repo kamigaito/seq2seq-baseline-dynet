@@ -41,9 +41,9 @@ public:
     dynet::Parameter p_Wch;
     dynet::Parameter p_out_R;
     dynet::Parameter p_out_bias;
-    dynet::VanillaLSTMBuilder dec_builder;
-    dynet::VanillaLSTMBuilder rev_enc_builder;
-    dynet::VanillaLSTMBuilder fwd_enc_builder;
+    dynet::LSTMBuilder dec_builder;
+    dynet::LSTMBuilder rev_enc_builder;
+    dynet::LSTMBuilder fwd_enc_builder;
 
     bool rev_enc;
     bool bi_enc;
@@ -123,19 +123,19 @@ public:
             p_Ua = model.add_parameters({opts->att_size, unsigned(opts->rnn_size * 1)});
         }
         p_va = model.add_parameters({opts->att_size});
-        rev_enc_builder = dynet::VanillaLSTMBuilder(
+        rev_enc_builder = dynet::LSTMBuilder(
             num_layers,
             enc_input_size,
             rnn_size,
             model
         );
-        fwd_enc_builder = dynet::VanillaLSTMBuilder(
+        fwd_enc_builder = dynet::LSTMBuilder(
             num_layers,
             enc_input_size,
             rnn_size,
             model
         );
-        dec_builder = dynet::VanillaLSTMBuilder(
+        dec_builder = dynet::LSTMBuilder(
             num_layers,
             (dec_feeding_size + opts->dec_word_vec_size),
             rnn_size,
@@ -324,12 +324,12 @@ public:
 
     void enable_dropout(){
         if(rev_enc == false || bi_enc == true){
-            fwd_enc_builder.set_dropout(dropout_rate_lstm_con, 0.f);
+            fwd_enc_builder.set_dropout(dropout_rate_lstm_con, 0.f, 0.f);
         }
         if(rev_enc == true || bi_enc == true){
-            rev_enc_builder.set_dropout(dropout_rate_lstm_con, 0.f);
+            rev_enc_builder.set_dropout(dropout_rate_lstm_con, 0.f, 0.f);
         }
-        dec_builder.set_dropout(dropout_rate_lstm_con, 0.f);
+        dec_builder.set_dropout(dropout_rate_lstm_con, 0.f, 0.f);
         flag_drop_out = true;
     }
 
