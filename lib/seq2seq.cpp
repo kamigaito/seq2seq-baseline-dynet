@@ -152,9 +152,9 @@ namespace s2s {
             current_loss = 0.0;
             while(para_corp_dev.next_batch_para(one_batch, dicts)){
                 // train one batch
-                current_loss += train_one_batch(false, one_batch, opts, align_w, encdec, trainer) * one_batch.src.at(0).at(0).size();
+                current_loss += train_one_batch(false, one_batch, opts, align_w, encdec, trainer) * (float)(one_batch.src.at(0).at(0).size());
             }
-            std::cerr << "current loss: " << current_loss << ", preivous_loss: " << prev_loss << std::endl;
+            std::cerr << "current loss: " << current_loss << ", previous_loss: " << prev_loss << std::endl;
             std::cerr << "dev_decode" << std::endl;
             para_corp_train.reset_index();
             para_corp_dev.reset_index();
