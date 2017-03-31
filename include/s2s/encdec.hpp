@@ -260,7 +260,7 @@ public:
                 
     std::vector<dynet::expr::Expression> init_feed(const batch &one_batch, dynet::ComputationGraph& cg){
         // std::vector<dynet::expr::Expression> i_feed{dynet::expr::zeroes(cg, dynet::Dim({dec_feeding_size}, one_batch.trg.at(0).size()))};
-        std::vector<dynet::expr::Expression> i_feed{dynet::expr::zeroes(cg, dynet::Dim({p_out_R.dim().d[1]}, one_batch.trg.at(0).size()))};
+        std::vector<dynet::expr::Expression> i_feed{dynet::expr::zeroes(cg, dynet::Dim({p_out_R.dim().d[1]}, one_batch.src.at(0).at(0).size()))};
         return i_feed;
     }
 
