@@ -158,7 +158,7 @@ public:
         if(rev_enc == false || bi_enc == true){
             fwd_enc_builder.new_graph(cg);
             fwd_enc_builder.start_new_sequence();
-            if(flag_drop_out == true){
+            if(flag_drop_out == true && dropout_rate_lstm_con > 0.f){
                 fwd_enc_builder.set_dropout_masks(batch_size);
                 // reset mask on 1-layer
                 fwd_enc_builder.masks[0][0] = input(cg, {fwd_enc_builder.input_dim}, std::vector<float>(fwd_enc_builder.input_dim, 1.f));
@@ -187,7 +187,7 @@ public:
         if(rev_enc == true || bi_enc == true){
             rev_enc_builder.new_graph(cg);
             rev_enc_builder.start_new_sequence();
-            if(flag_drop_out == true){
+            if(flag_drop_out == true && dropout_rate_lstm_con > 0.f){
                 rev_enc_builder.set_dropout_masks(batch_size);
                 rev_enc_builder.masks[0][0] = input(cg, {rev_enc_builder.input_dim}, std::vector<float>(rev_enc_builder.input_dim, 1.f));
             }
